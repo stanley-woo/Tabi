@@ -1,8 +1,12 @@
-from fastapi import FastAPI, Depends, HTTPException, Path
+from fastapi import FastAPI, Depends, HTTPException, Path, status, Body, Query
+# from pydantic import BaseModel
 from sqlmodel import Session, select
 from slugify import slugify
+from sqlalchemy import or_
+from sqlalchemy.exc import IntegrityError
+from typing import Optional
 from .models import User, Itinerary
-from .schemas import UserCreate, ItineraryCreate, UserRead, ItineraryRead, ItineraryUpdate
+from .schemas import UserCreate, ItineraryCreate, UserRead, ItineraryRead, ItineraryUpdate, ItineraryDelete, ItineraryFork
 from .database import init_db, get_session
 import uuid
 
@@ -40,18 +44,62 @@ def create_itinerary(itin: ItineraryCreate, session: Session = Depends(get_sessi
         session.commit()
     except IntegrityError:
         session.rollback()
-        raise HTTPException(status_code=400, detail="Itinerary with this title already exists for this user.")
+        raise HTTPException(status_code=409, detail="Itinerary with this title already exists for this user.")
     session.refresh(itinerary)
     return itinerary
 
+@app.post("/itineraries/{id}/fork", response_model = ItineraryRead, status_code=status.HTTP_201_CREATED)
+def fork_itinerary(id: int, fork_data: ItineraryFork, session : Session = Depends(get_session)):
+    original = session.get(Itinerary, id)
+
+    if not original:
+        raise HTTPException(status_code=404, detail="Original Itinerary Not Found.")
+
+    new_title = f"{original.title} (forked)"
+    suffix = 1
+    while session.exec(
+        select(Itinerary).where(
+            Itinerary.title == new_title,
+            Itinerary.creator_id == fork_data.creator_id
+        )
+    ).first():
+        suffix += 1
+        new_title = f"{original.title} (forked {suffix})"
+
+    forked = Itinerary(title = new_title, description=original.description, visibility=original.visibility, 
+                       creator_id=fork_data.creator_id, slug=slugify(new_title)+f"-{fork_data.creator_id}", tags=original.tags.copy() if original.tags else [],
+                       parent_id=original.id)
+
+    session.add(forked)
+    session.commit()
+    session.refresh(forked)
+    return forked
 # Get Methods
 @app.get("/users", response_model=list[UserRead])
 def list_user(session: Session = Depends(get_session)):
     return session.exec(select(User)).all()
 
 @app.get("/itineraries/", response_model = list[ItineraryRead])
-def list_itineraries(session: Session = Depends(get_session)):
-    return session.exec(select(Itinerary)).all()
+def list_itineraries(session: Session = Depends(get_session), tags: Optional[str] = Query(None, description="Comma-separated tags"),
+                     search: Optional[str] = Query(None, description="Search String"), limit: int = Query(20, ge=1), offset: int = Query(0, ge=0),):
+    query = select(Itinerary).where(Itinerary.visibility == "public")
+
+    if tags:
+        tag_list = tags.split(",")
+        query = query.where(Itinerary.tags.contains(tag_list))
+    
+    if search:
+        search_term = f"%{search.lower()}%"
+        query = query.where(
+            or_(
+                Itinerary.title.ilike(search_term),
+                Itinerary.description.ilike(search_term)
+            )
+        )
+    
+    query = query.offset(offset).limit(limit)
+    results = session.exec(query).all()
+    return results
 
 @app.get("/users/{username}", response_model = UserRead)
 def get_user_by_username(username: str, session : Session = Depends(get_session)):
@@ -101,3 +149,17 @@ def update_itinerary(id: int, itin_update: ItineraryUpdate, session: Session = D
     session.commit()
     session.refresh(itinerary)
     return itinerary
+
+# Delete Methods
+@app.delete("/itineraries/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_itinerary(id: int, delete_req: ItineraryDelete = Body(...), session: Session = Depends(get_session)):
+    itinerary = session.get(Itinerary, id)
+
+    if not itinerary:
+        raise HTTPException(status_code = 404, detail = "Itinerary Not Found.")
+    
+    if itinerary.creator_id != delete_req.creator_id:
+        raise HTTPException(status_code = 403, detail = "Not Authorized To Delete This Itinerary.")
+    
+    session.delete(itinerary)
+    session.commit()
