@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/home_screen.dart';
+import 'package:frontend/screens/profile_screen.dart';
 import 'demo/detailed_itinerary_demo.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/home_screen.dart';
 
 void main() {
   runApp(const Tabi());
@@ -19,7 +22,9 @@ class Tabi extends StatelessWidget {
       routes: {
         '/': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
-        '/demo': (context) => const DetailedItineraryDemo(),
+        '/home': (context) => const HomeScreen(),
+        '/detail': (context) => const DetailedItineraryDemo(),
+        '/profile': (context) => const ProfileScreen(),
       },
     );
   }

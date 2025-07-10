@@ -34,7 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     if(ok) {
-      Navigator.pushReplacementNamed(context, '/demo');
+      Navigator.pushReplacementNamed(context, '/home');
     } else {
       setState(() => _error = 'Invalid Credentials.');}
   }
