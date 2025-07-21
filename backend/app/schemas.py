@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 
 # User Models
 class UserCreate(BaseModel):
@@ -29,18 +29,34 @@ class ItineraryCreate(ItineraryBase):
     creator_id: int
     parent_id: Optional[int] = None
 
-class ItineraryRead(ItineraryBase):
-    id: int
-    creator_id: int
-    slug: str
-    parent_id: Optional[int] = None
-
-    class Config:
-        orm_mode = True
-
 class ItineraryFork(BaseModel):
     creator_id : int
 
 class ItineraryDelete(BaseModel):
     creator_id : int
-    
+
+
+# ItineraryBlocks Model
+class ItineraryBlockRead(BaseModel):
+    id: int
+    order: int
+    type: str
+    content: str
+
+    class Config:
+        orm_mode = True
+
+class ItineraryBlockCreate(BaseModel):
+    order: int
+    type: str
+    content: str
+
+class ItineraryRead(ItineraryBase):
+    id: int
+    creator_id: int
+    slug: str
+    parent_id: Optional[int] = None
+    blocks: List[ItineraryBlockRead] = []
+
+    class Config:
+        orm_mode = True

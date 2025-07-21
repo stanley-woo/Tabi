@@ -23,7 +23,10 @@ class Tabi extends StatelessWidget {
         '/': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const HomeScreen(),
-        '/detail': (context) => const DetailedItineraryDemo(),
+        '/detail': (context) {
+          final id = ModalRoute.of(context)!.settings.arguments as int;
+          return DetailedItineraryDemo(id: id);
+        },
         '/profile': (context) => const ProfileScreen(),
       },
     );

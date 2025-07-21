@@ -26,6 +26,19 @@ class Itinerary(SQLModel, table=True):
     creator: Optional[User] = Relationship(back_populates="itineraries")
     parent_id: Optional[int] = Field(default=None, foreign_key="itinerary.id")
     tags: List[str] = Field(default_factory=list, sa_column=Column(JSONB))
+    blocks: List["ItineraryBlock"] = Relationship(
+        back_populates="itinerary",
+        sa_relationship_kwargs={"lazy": "selectin"}
+    )
 
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+class ItineraryBlock(SQLModel, table = True):
+    id: Optional[int] = Field(default=None, primary_key = True)
+    itinerary_id: int = Field(foreign_key = "itinerary.id", index = True)
+    order: int # To Control Display Order
+    type: str
+    content: str # Either JSON or Text
+
+    itinerary: Optional[Itinerary] = Relationship(back_populates = "blocks")
