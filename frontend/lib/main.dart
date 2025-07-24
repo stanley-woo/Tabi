@@ -4,7 +4,8 @@ import 'package:frontend/screens/profile_screen.dart';
 import 'demo/detailed_itinerary_demo.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
-import 'screens/home_screen.dart';
+import 'screens/create_itinerary_screen.dart';
+
 
 void main() {
   runApp(const Tabi());
@@ -23,6 +24,7 @@ class Tabi extends StatelessWidget {
         '/': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const HomeScreen(),
+        '/create': (context) => const CreateItineraryScreen(),
         '/detail': (context) {
           final id = ModalRoute.of(context)!.settings.arguments as int;
           return DetailedItineraryDemo(id: id);

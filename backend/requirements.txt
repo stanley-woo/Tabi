@@ -4,6 +4,7 @@ sqlmodel
 psycopg2-binary
 python-dotenv
 python-slugify
+python-multipart
 pytest
 black
 flake8

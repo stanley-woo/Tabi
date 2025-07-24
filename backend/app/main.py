@@ -2,10 +2,11 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 
 from .database import init_db
-from .routers import users, itineraries, blocks
+from .routers import users, itineraries, blocks, files
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -27,10 +28,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.mount("/static", StaticFiles(directory = "app/static"), name= "static")
+
 # Mount each router under its own prefix
-app.include_router(users.router)
-app.include_router(itineraries.router)
-app.include_router(blocks.router)
+app.include_router(users.router,       prefix="", tags=["users"])
+app.include_router(itineraries.router, prefix="", tags=["itineraries"])
+app.include_router(blocks.router,      prefix="", tags=["blocks"])
+app.include_router(files.router,       prefix="", tags=["files"])
+
 # from fastapi import FastAPI, Depends, HTTPException, Path, status, Body, Query
 # # from pydantic import BaseModel
 # from sqlmodel import Session, select
