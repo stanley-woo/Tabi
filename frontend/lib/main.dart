@@ -17,7 +17,10 @@ class Tabi extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(debugShowCheckedModeBanner: false, title: 'Tabi', 
-      theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal)),
+      theme: ThemeData(
+        primaryColor: const Color(0xFF005B4F),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal)
+        ),
       // useMaterial3: true,
       initialRoute: '/',
       routes: {
@@ -27,7 +30,7 @@ class Tabi extends StatelessWidget {
         '/create': (context) => const CreateItineraryScreen(),
         '/detail': (context) {
           final id = ModalRoute.of(context)!.settings.arguments as int;
-          return DetailedItineraryDemo(id: id);
+          return DetailedItineraryScreen(id: id);
         },
         '/profile': (context) => const ProfileScreen(),
       },
