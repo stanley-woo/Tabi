@@ -30,13 +30,14 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  http: ^1.4.0
+  image_picker: ^0.8.5+3
+  photo_view: ^0.15.0
   cupertino_icons: ^1.0.8
   google_fonts: ^6.2.1
   google_maps_flutter: ^2.5.0
   apple_maps_flutter: ^1.4.0
-  http: ^1.4.0
-  image_picker: ^0.8.5+3
-  photo_view: ^0.15.0
+
 
 dev_dependencies:
   flutter_test:

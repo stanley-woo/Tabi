@@ -1,6 +1,6 @@
 from sqlmodel import SQLModel, Field, Relationship, UniqueConstraint, JSON
 from datetime import datetime
-from sqlalchemy import Column 
+from sqlalchemy import Column, ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB
 from typing import Optional, List
 
@@ -28,7 +28,7 @@ class Itinerary(SQLModel, table=True):
     tags: List[str] = Field(default_factory=list, sa_column=Column(JSONB))
     blocks: List["ItineraryBlock"] = Relationship(
         back_populates="itinerary",
-        sa_relationship_kwargs={"lazy": "selectin"}
+        sa_relationship_kwargs={"lazy": "selectin", "cascade": "all, delete-orphan"}
     )
 
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -36,7 +36,12 @@ class Itinerary(SQLModel, table=True):
 
 class ItineraryBlock(SQLModel, table = True):
     id: Optional[int] = Field(default=None, primary_key = True)
-    itinerary_id: int = Field(foreign_key = "itinerary.id", index = True)
+    itinerary_id: int = Field(
+        sa_column=Column(
+            ForeignKey("itinerary.id", ondelete="CASCADE"),
+            nullable=False,
+        )
+    )
     order: int # To Control Display Order
     type: str
     content: str # Either JSON or Text

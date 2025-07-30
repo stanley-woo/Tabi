@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/screens/home_screen.dart';
 import 'package:frontend/screens/profile_screen.dart';
-import 'demo/detailed_itinerary_demo.dart';
+import 'package:frontend/screens/detailed_itinerary_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/create_itinerary_screen.dart';
+import 'screens/map_picker_screen.dart';
 
 
 void main() {
@@ -32,6 +33,7 @@ class Tabi extends StatelessWidget {
           final id = ModalRoute.of(context)!.settings.arguments as int;
           return DetailedItineraryScreen(id: id);
         },
+        '/map_picker': (_) => const MapPickerScreen(),
         '/profile': (context) => const ProfileScreen(),
       },
     );
