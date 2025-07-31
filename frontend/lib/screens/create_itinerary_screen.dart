@@ -9,6 +9,7 @@ import 'package:image_picker/image_picker.dart';
 import '../screens/map_picker_screen.dart';
 import '../services/file_service.dart';
 import '../services/itinerary_service.dart';
+import 'day_group_screen.dart';
 
 enum BlockType { text, image, map }
 
@@ -38,6 +39,9 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
   bool _isPublic = true;
   final List<String> _tags = [];
   final List<ItineraryBlockEditorModel> _blocks = [];
+
+  List<DateTime> _dayDates = [DateTime.now()];
+  int _selectedDay = 0;
 
   @override
   void initState() {
@@ -210,6 +214,145 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
     );
   }
 
+  // /// === EDIT PANE ===
+  // Widget _editPane() {
+  //   return Form(
+  //     key: _formKey,
+  //     child: SingleChildScrollView(
+  //       padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
+  //       child: Column(
+  //         crossAxisAlignment: CrossAxisAlignment.start,
+  //         children: [
+  //           // title
+  //           TextFormField(
+  //             controller: _titleController,
+  //             decoration: InputDecoration(
+  //               filled: true,
+  //               fillColor: Colors.grey[200],
+  //               hintText: 'Name your trip',
+  //               border: OutlineInputBorder(
+  //                 borderRadius: BorderRadius.circular(16),
+  //                 borderSide: BorderSide.none,
+  //               ),
+  //             ),
+  //             validator: (v) =>
+  //                 (v == null || v.isEmpty) ? 'Enter name' : null,
+  //           ),
+  //           const SizedBox(height: 16),
+
+  //           // description
+  //           TextFormField(
+  //             controller: _descriptionController,
+  //             decoration: InputDecoration(
+  //               filled: true,
+  //               fillColor: Colors.grey[200],
+  //               hintText: 'Description',
+  //               border: OutlineInputBorder(
+  //                 borderRadius: BorderRadius.circular(16),
+  //                 borderSide: BorderSide.none,
+  //               ),
+  //             ),
+  //             maxLines: 3,
+  //           ),
+  //           const SizedBox(height: 16),
+
+  //           // Blocks label + existing editors
+  //           Text('Blocks',
+  //               style: GoogleFonts.poppins(fontSize: 16)),
+  //           const SizedBox(height: 8),
+  //           ..._blocks
+  //               .asMap()
+  //               .entries
+  //               .map((e) => _blockEditor(e.key, e.value)),
+
+  //           // add‐block buttons
+  //           SingleChildScrollView(
+  //             scrollDirection: Axis.horizontal,
+  //             padding: const EdgeInsets.symmetric(vertical: 8),
+  //             child: Row(
+  //               children: [
+  //                 ElevatedButton.icon(
+  //                   icon: const Icon(Icons.text_fields),
+  //                   label: const Text('Text Block'),
+  //                   onPressed: () => setState(() => _blocks.add(
+  //                       ItineraryBlockEditorModel(
+  //                           type: BlockType.text))),
+  //                 ),
+  //                 const SizedBox(width: 8),
+  //                 ElevatedButton.icon(
+  //                   icon: const Icon(Icons.image),
+  //                   label: const Text('Image Block'),
+  //                   onPressed: () => setState(() => _blocks.add(
+  //                       ItineraryBlockEditorModel(
+  //                           type: BlockType.image))),
+  //                 ),
+  //                 const SizedBox(width: 8),
+  //                 ElevatedButton.icon(
+  //                   icon: const Icon(Icons.map),
+  //                   label: const Text('Map Block'),
+  //                   onPressed: () => setState(() => _blocks.add(
+  //                       ItineraryBlockEditorModel(
+  //                           type: BlockType.map))),
+  //                 ),
+  //               ],
+  //             ),
+  //           ),
+  //           const SizedBox(height: 16),
+
+  //           // Tags
+  //           Text('Tags',
+  //               style: GoogleFonts.poppins(fontSize: 16)),
+  //           const SizedBox(height: 8),
+  //           Wrap(
+  //             spacing: 8,
+  //             runSpacing: 4,
+  //             children: _tags
+  //                 .map((tag) => Chip(
+  //                       label: Text(tag),
+  //                       backgroundColor: Colors.grey[200],
+  //                       onDeleted: () =>
+  //                           setState(() => _tags.remove(tag)),
+  //                     ))
+  //                 .toList(),
+  //           ),
+  //           const SizedBox(height: 8),
+  //           TextField(
+  //             controller: _tagInputController,
+  //             decoration: InputDecoration(
+  //               filled: true,
+  //               fillColor: Colors.grey[200],
+  //               hintText: 'Add tag',
+  //               border: OutlineInputBorder(
+  //                   borderRadius: BorderRadius.circular(16),
+  //                   borderSide: BorderSide.none),
+  //               contentPadding:
+  //                   const EdgeInsets.symmetric(horizontal: 16),
+  //               suffixIcon: IconButton(
+  //                 icon: Icon(Icons.add_circle,
+  //                     color: Theme.of(context).primaryColor),
+  //                 onPressed: _addTag,
+  //               ),
+  //             ),
+  //             onSubmitted: (_) => _addTag(),
+  //           ),
+  //           const SizedBox(height: 16),
+
+  //           // Visibility
+  //           SwitchListTile.adaptive(
+  //             title: Text('Public',
+  //                 style: GoogleFonts.poppins()),
+  //             value: _isPublic,
+  //             onChanged: (v) => setState(() => _isPublic = v),
+  //             contentPadding: EdgeInsets.zero,
+  //             activeColor:
+  //                 Theme.of(context).colorScheme.secondary,
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
+
   /// === EDIT PANE ===
   Widget _editPane() {
     return Form(
@@ -219,7 +362,73 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // title
+            // ─── Day Tabs ───────────────────────────────
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  // Render one chip per day
+                  for (var i = 0; i < _dayDates.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        label: Text('Day ${i+1}'),
+                        selected: _selectedDay == i,
+                        onSelected: (_) => setState(() => _selectedDay = i),
+                      ),
+                    ),
+
+                  // + button
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline),
+                    onPressed: () {
+                      setState(() {
+                        _dayDates.add(DateTime.now());
+                        _selectedDay = _dayDates.length - 1;
+                      });
+                    },
+                  ),
+
+                  // – button (only if more than one day)
+                  if (_dayDates.length > 1)
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline),
+                      onPressed: () {
+                        setState(() {
+                          _dayDates.removeAt(_selectedDay);
+                          _selectedDay = (_selectedDay - 1).clamp(0, _dayDates.length - 1);
+                        });
+                      },
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // ─── Day Date Picker ────────────────────────
+            TextButton.icon(
+              icon: const Icon(Icons.calendar_today),
+              label: Text(
+                _dayDates[_selectedDay]
+                    .toLocal()
+                    .toIso8601String()
+                    .substring(0, 10),
+              ),
+              onPressed: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _dayDates[_selectedDay],
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime(2100),
+                );
+                if (picked != null) {
+                  setState(() => _dayDates[_selectedDay] = picked);
+                }
+              },
+            ),
+            const SizedBox(height: 24),
+
+            // ─── Trip Title & Description ───────────────
             TextFormField(
               controller: _titleController,
               decoration: InputDecoration(
@@ -236,7 +445,6 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
             ),
             const SizedBox(height: 16),
 
-            // description
             TextFormField(
               controller: _descriptionController,
               decoration: InputDecoration(
@@ -252,16 +460,16 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
             ),
             const SizedBox(height: 16),
 
-            // Blocks label + existing editors
-            Text('Blocks',
-                style: GoogleFonts.poppins(fontSize: 16)),
+            // ─── Blocks Label & Editors ─────────────────
+            Text('Blocks', style: GoogleFonts.poppins(fontSize: 16)),
             const SizedBox(height: 8),
             ..._blocks
                 .asMap()
                 .entries
-                .map((e) => _blockEditor(e.key, e.value)),
+                .map((e) => _blockEditor(e.key, e.value))
+                .toList(),
 
-            // add‐block buttons
+            // ─── Add-Block Buttons ───────────────────────
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -270,34 +478,30 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
                   ElevatedButton.icon(
                     icon: const Icon(Icons.text_fields),
                     label: const Text('Text Block'),
-                    onPressed: () => setState(() => _blocks.add(
-                        ItineraryBlockEditorModel(
-                            type: BlockType.text))),
+                    onPressed: () => setState(() =>
+                        _blocks.add(ItineraryBlockEditorModel(type: BlockType.text))),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.image),
                     label: const Text('Image Block'),
-                    onPressed: () => setState(() => _blocks.add(
-                        ItineraryBlockEditorModel(
-                            type: BlockType.image))),
+                    onPressed: () => setState(() =>
+                        _blocks.add(ItineraryBlockEditorModel(type: BlockType.image))),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton.icon(
                     icon: const Icon(Icons.map),
                     label: const Text('Map Block'),
-                    onPressed: () => setState(() => _blocks.add(
-                        ItineraryBlockEditorModel(
-                            type: BlockType.map))),
+                    onPressed: () => setState(() =>
+                        _blocks.add(ItineraryBlockEditorModel(type: BlockType.map))),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
 
-            // Tags
-            Text('Tags',
-                style: GoogleFonts.poppins(fontSize: 16)),
+            // ─── Tags ────────────────────────────────────
+            Text('Tags', style: GoogleFonts.poppins(fontSize: 16)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -306,8 +510,7 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
                   .map((tag) => Chip(
                         label: Text(tag),
                         backgroundColor: Colors.grey[200],
-                        onDeleted: () =>
-                            setState(() => _tags.remove(tag)),
+                        onDeleted: () => setState(() => _tags.remove(tag)),
                       ))
                   .toList(),
             ),
@@ -321,8 +524,7 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
                 border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
                     borderSide: BorderSide.none),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                 suffixIcon: IconButton(
                   icon: Icon(Icons.add_circle,
                       color: Theme.of(context).primaryColor),
@@ -333,15 +535,13 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
             ),
             const SizedBox(height: 16),
 
-            // Visibility
+            // ─── Visibility ──────────────────────────────
             SwitchListTile.adaptive(
-              title: Text('Public',
-                  style: GoogleFonts.poppins()),
+              title: Text('Public', style: GoogleFonts.poppins()),
               value: _isPublic,
               onChanged: (v) => setState(() => _isPublic = v),
               contentPadding: EdgeInsets.zero,
-              activeColor:
-                  Theme.of(context).colorScheme.secondary,
+              activeColor: Theme.of(context).colorScheme.secondary,
             ),
           ],
         ),

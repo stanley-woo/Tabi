@@ -110,6 +110,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       (b) => b.type == 'image',
                       orElse: () => ItineraryBlock(
                           id: 0,
+                          itineraryId: itin.id,
+                          dayGroupId: null,
                           order: 0,
                           type: 'image',
                           content:
@@ -137,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 height: 180,
                                 width: double.infinity,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
+                                errorBuilder: (_, _, _) => Container(
                                   height: 180,
                                   color: Colors.grey.shade200,
                                   child: const Center(

@@ -1,24 +1,26 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+import os
+import uuid
+from fastapi import APIRouter, UploadFile, File, HTTPException, status
 from fastapi.staticfiles import StaticFiles
-import uuid, os
 
-router = APIRouter()
+router = APIRouter(prefix="/files", tags=["files"])
 
-# Making sure we have a place to store uploaded files
-UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "static")
+# Ensure upload directory exists
+UPLOAD_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "static"))
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-@router.post("/upload-image", status_code=201)
+# Serve uploaded files at /static
+router.mount("/static", StaticFiles(directory=UPLOAD_DIR), name="static")
+
+@router.post("/upload-image", status_code=status.HTTP_201_CREATED)
 async def upload_image(file: UploadFile = File(...)):
-    """Accepts a single image file and returns a URL where it can be fetched."""
+    """Accept a single image and return its public URL."""
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in {".jpg", ".jpeg", ".png", ".gif"}:
-        raise HTTPException(400, "Invalid image type.")
-     
-    new_name = f"{uuid.uuid4()}{ext}"
-    out_path = os.path.join(UPLOAD_DIR, new_name)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid image type")
+    filename = f"{uuid.uuid4()}{ext}"
+    path = os.path.join(UPLOAD_DIR, filename)
     content = await file.read()
-    with open(out_path, "wb") as f:
-        f.write(content)
-    return {"url": f"/static/{new_name}"}
-    
+    with open(path, "wb") as out:
+        out.write(content)
+    return {"url": f"/static/{filename}"}
