@@ -1,94 +1,104 @@
 // lib/screens/day_group_screen.dart
 
 import 'package:flutter/material.dart';
-import '../services/day_group_service.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../models/day_group.dart';
+import '../services/day_group_service.dart';
 
-/// A screen that displays and manages DayGroups for a given itinerary.
 class DayGroupScreen extends StatefulWidget {
   final int itineraryId;
-  DayGroupScreen({ required this.itineraryId });
+  const DayGroupScreen({Key? key, required this.itineraryId}) : super(key: key);
 
   @override
-  _DayGroupScreenState createState() => _DayGroupScreenState();
+  State<DayGroupScreen> createState() => _DayGroupScreenState();
 }
 
 class _DayGroupScreenState extends State<DayGroupScreen> {
-  late Future<List<DayGroup>> _dayGroupsFuture;
+  late Future<List<DayGroup>> _futureDays;
 
   @override
   void initState() {
     super.initState();
-    _loadDayGroups();
+    _futureDays = DayGroupService.fetchDayGroups(widget.itineraryId);
   }
 
   void _loadDayGroups() {
-    _dayGroupsFuture = DayGroupService.fetchDayGroups(widget.itineraryId);
+    setState(() {
+      _futureDays = DayGroupService.fetchDayGroups(widget.itineraryId);
+    });
   }
 
-  Future<void> _onAddDay() async {
-    // TODO: show date picker/form for date + title
-    final pickedDate = DateTime.now();
-    final newDay = await DayGroupService.createDayGroup(
+  Future<void> _onCreateDay() async {
+    // default to today; you might pop up a date picker instead
+    final today = DateTime.now();
+    await DayGroupService.createDayGroup(
       itineraryId: widget.itineraryId,
-      date: pickedDate,
-      title: 'New Day',
+      date: today,
+      title: 'Day ${DateTime.now().day}',
     );
     _loadDayGroups();
-    setState(() {});
   }
 
   Future<void> _onDeleteDay(int dayId) async {
-    await DayGroupService.deleteDayGroup(widget.itineraryId, dayId);
+    await DayGroupService.deleteDayGroup(
+      itineraryId: widget.itineraryId,
+      dayGroupId: dayId,
+    );
     _loadDayGroups();
-    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Days for Itinerary ${widget.itineraryId}'),
-        actions: [ IconButton(icon: Icon(Icons.add), onPressed: _onAddDay) ],
-      ),
-      body: FutureBuilder<List<DayGroup>>(
-        future: _dayGroupsFuture,
-        builder: (ctx, snap) {
-          if (snap.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-          if (snap.hasError) {
-            return Center(child: Text('Error: ${snap.error}'));
-          }
-          final days = snap.data!;
-          if (days.isEmpty) {
-            return Center(child: Text('No days yet. Tap + to add one.'));
-          }
-          return ReorderableListView(
-            onReorder: (oldIndex, newIndex) async {
-              if (newIndex > oldIndex) newIndex--;
-              final ids = days.map((d) => d.id).toList();
-              final moved = ids.removeAt(oldIndex);
-              ids.insert(newIndex, moved);
-              await DayGroupService.reorderDayGroups(widget.itineraryId, ids);
-              _loadDayGroups();
-              setState(() {});
-            },
-            children: [
-              for (final day in days)
-                ListTile(
-                  key: ValueKey(day.id),
-                  title: Text(day.title ?? 'Day ${day.order}'),
-                  subtitle: Text(day.date.toIso8601String().substring(0,10)),
-                  trailing: IconButton(
-                    icon: Icon(Icons.delete),
-                    onPressed: () => _onDeleteDay(day.id),
-                  ),
-                ),
-            ],
+    return FutureBuilder<List<DayGroup>>(
+      future: _futureDays,
+      builder: (ctx, snap) {
+        if (snap.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snap.hasError) {
+          return Center(
+            child: Text('Error: ${snap.error}', style: GoogleFonts.poppins(color: Colors.red)),
           );
-        },
-      ),
+        }
+        final days = snap.data!;
+        return ReorderableListView.builder(
+          onReorder: (oldIndex, newIndex) async {
+            if (newIndex > oldIndex) newIndex--;
+            final ids = days.map((d) => d.id).toList();
+            final movedId = ids.removeAt(oldIndex);
+            ids.insert(newIndex, movedId);
+            await DayGroupService.reorderDayGroups(
+              itineraryId: widget.itineraryId,
+              orderedIds: ids,
+            );
+            _loadDayGroups();
+          },
+          itemCount: days.length + 1,
+          itemBuilder: (ctx, i) {
+            if (i == days.length) {
+              // the “+” at the end
+              return ListTile(
+                key: ValueKey('add_${days.length}'),
+                leading: const Icon(Icons.add_circle_outline),
+                title: Text('Add Day', style: GoogleFonts.poppins()),
+                onTap: _onCreateDay,
+              );
+            }
+            final day = days[i];
+            return ListTile(
+              key: ValueKey(day.id),
+              title: Text(
+                '${day.title} (${day.date.toIso8601String().substring(0, 10)})',
+                style: GoogleFonts.poppins(),
+              ),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () => _onDeleteDay(day.id),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

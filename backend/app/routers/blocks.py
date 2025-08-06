@@ -1,18 +1,21 @@
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Path, status
 from sqlmodel import Session
 
 from ..database import get_session
-from ..models import Itinerary
+from ..models import DayGroup
+from ..crud import create_block, get_blocks
 from ..schemas import ItineraryBlockCreate, ItineraryBlockRead
-from ..crud import create_block
 
-router = APIRouter(prefix="/itineraries/{itinerary_id}/blocks", tags=["blocks"])
+router = APIRouter(prefix="/itineraries/{itinerary_id}/days/{day_id}/blocks", tags=["blocks"])
 
-@router.post("", response_model=ItineraryBlockRead, status_code=status.HTTP_201_CREATED,)
-def post_block(payload: ItineraryBlockCreate, itinerary_id: int = Path(..., gt=0), session: Session = Depends(get_session)):
-    """Create a new block under an itinerary."""
-    # 1) Verify itinerary exists
-    if not session.get(Itinerary, itinerary_id):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Itinerary not found")
-    # 2) Delegate to CRUD (session-first signature)
-    return create_block(session, itinerary_id, payload.order, payload.type, payload.content)
+@router.get("", response_model=List[ItineraryBlockRead], status_code=status.HTTP_200_OK)
+def list_blocks_route(*,itinerary_id: int, day_id: int, session: Session = Depends(get_session)):
+    day = session.get(DayGroup, day_id)
+    if not day or day.itinerary_id != itinerary_id:
+        raise HTTPException(status_code=404, detail="Day not found on that itinerary")
+    return get_blocks(session, day_id)
+
+@router.post("", response_model=ItineraryBlockRead, status_code=status.HTTP_201_CREATED)
+def create_block_route(*,itinerary_id: int, day_id: int, payload: ItineraryBlockCreate, session: Session = Depends(get_session)):
+    return create_block(session, day_id, payload.order, payload.type, payload.content)

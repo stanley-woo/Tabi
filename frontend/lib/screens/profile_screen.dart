@@ -1,7 +1,7 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/itinerary.dart';
+import '../models/itinerary_block.dart';
 import '../services/profile_service.dart';
 
 /// Displays a user profile with a collapsible cover header, avatar,
@@ -146,20 +146,21 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildItinCard(Itinerary itin) {
-    final hasImage = itin.blocks.any((b) => b.type == 'image');
-    final imgUrl = hasImage
-        ? itin.blocks.firstWhere((b) => b.type == 'image').content
-        : null;
+    // 1. Flatten all blocks across days:
+    final allBlocks = itin.days.expand((d) => d.blocks);
+
+    // 2. Find image block if any:
+    ItineraryBlock? imageBlock;
+    if (allBlocks.where((b) => b.type == 'image').isNotEmpty) {
+      imageBlock = allBlocks.firstWhere((b) => b.type == 'image');
+    }
+
+    final imgUrl = imageBlock?.content;
 
     return GestureDetector(
-      onTap: () =>
-          Navigator.pushNamed(context, '/detail', arguments: itin.id),
+      onTap: () => Navigator.pushNamed(context, '/detail', arguments: itin.id),
       child: Card(
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        clipBehavior: Clip.hardEdge,
-        elevation: 2,
+        // …
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -172,9 +173,10 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
             Padding(
               padding: const EdgeInsets.all(12),
-              child: Text(itin.title,
-                  style: GoogleFonts.poppins(
-                      fontSize: 16, fontWeight: FontWeight.w600)),
+              child: Text(
+                itin.title,
+                style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
             ),
           ],
         ),

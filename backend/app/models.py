@@ -1,8 +1,7 @@
 from datetime import date
 from typing import List, Optional
 
-from sqlalchemy import Column, ForeignKey, UniqueConstraint
-from sqlalchemy import JSON
+from sqlalchemy import Column, ForeignKey, UniqueConstraint, JSON
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -27,9 +26,11 @@ class DayGroup(SQLModel, table=True):
     # link back to parent Itinerary
     itinerary: "Itinerary" = Relationship(back_populates="days")
 
+    blocks: List["ItineraryBlock"] = Relationship(back_populates="day_group", sa_relationship_kwargs={"lazy": "selectin", "cascade": "all, delete-orphan", "order_by": "ItineraryBlock.order"})
+
 
 class Itinerary(SQLModel, table=True):
-    __table_args__ = (UniqueConstraint("title", "creator_id"), UniqueConstraint("slug", "creator_id"))
+    __table_args__ = (UniqueConstraint("title", "creator_id"), UniqueConstraint("slug", "creator_id"),)
 
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str = Field(default="Untitled Itinerary")
@@ -40,15 +41,16 @@ class Itinerary(SQLModel, table=True):
     creator: Optional[User] = Relationship(back_populates="itineraries")
     parent_id: Optional[int] = Field(default=None, foreign_key="itinerary.id")
     tags: List[str] = Field(default_factory=list,sa_column=Column(JSON, default_factory=list))
-    blocks: List["ItineraryBlock"] = Relationship(back_populates="itinerary", sa_relationship_kwargs={"lazy": "selectin", "cascade": "all, delete-orphan"})
-    days: List[DayGroup] = Relationship(back_populates="itinerary", sa_relationship_kwargs={"order_by": DayGroup.order})
+    days: List[DayGroup] = Relationship(back_populates="itinerary", sa_relationship_kwargs={"order_by": DayGroup.order, "cascade": "all, delete-orphan"})
 
 
 class ItineraryBlock(SQLModel, table=True):
+    __tablename__ = "itineraryblock"
+
     id: Optional[int] = Field(default=None, primary_key=True)
-    itinerary_id: int = Field(sa_column=Column(ForeignKey("itinerary.id", ondelete="CASCADE"), nullable=False))
+    day_group_id: int = Field(foreign_key="day_group.id", nullable=False)
     order: int
     type: str
     content: str
 
-    itinerary: Optional[Itinerary] = Relationship(back_populates="blocks")
+    day_group: DayGroup = Relationship(back_populates="blocks")

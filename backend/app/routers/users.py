@@ -1,31 +1,25 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Path, status
-from sqlmodel import select, Session
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlmodel import Session, select
 
 from ..database import get_session
-from ..models import User
 from ..schemas import UserCreate, UserRead
+from ..crud import create_user, get_user, list_users
+from ..models import User
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 @router.post("", response_model=UserRead, status_code=status.HTTP_201_CREATED)
-def create_user(payload: UserCreate, session: Session = Depends(get_session)):
-    """Register a new user."""
-    user = User(username=payload.username)
-    session.add(user)
-    session.commit()
-    session.refresh(user)
-    return user
+def create_user_route(*, data: UserCreate, session: Session = Depends(get_session)):
+    """Create a new user."""
+    return create_user(session, data)
 
-@router.get("", response_model=List[UserRead])
-def list_users(session: Session = Depends(get_session)):
-    """Return all users."""
-    return session.exec(select(User)).all()
+@router.get("", response_model=List[UserRead], status_code=status.HTTP_200_OK)
+def list_users_route(*, session: Session = Depends(get_session)):
+    """List all users."""
+    return list_users(session)
 
-@router.get("/{username}", response_model=UserRead)
-def get_user(username: str = Path(...), session: Session = Depends(get_session)):
-    """Fetch a user by username."""
-    user = session.exec(select(User).where(User.username == username)).first()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return user
+@router.get("/{user_id}", response_model=UserRead, status_code=status.HTTP_200_OK)
+def get_user_route(*, user_id: int, session: Session = Depends(get_session)):
+    """Fetch a single user by ID."""
+    return get_user(session, user_id)

@@ -1,5 +1,3 @@
-// File: lib/screens/home_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/itinerary.dart';
@@ -41,23 +39,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
       body: Column(
         children: [
-          // SEARCH BAR (restyled)
+          // SEARCH BAR
           Padding(
             padding: const EdgeInsets.all(12),
             child: TextField(
               controller: _searchCtrl,
-              style: GoogleFonts.poppins(),             // ← new
+              style: GoogleFonts.poppins(),
               decoration: InputDecoration(
-                filled: true,                            // ← new
-                fillColor: Colors.grey[200],             // ← new
+                filled: true,
+                fillColor: Colors.grey[200],
                 hintText: 'Search by location or tag…',
-                hintStyle: GoogleFonts.poppins(
-                  color: Colors.grey[600],
-                ),                                        // ← new
+                hintStyle: GoogleFonts.poppins(color: Colors.grey[600]),
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,           // ← new
+                  borderSide: BorderSide.none,
                 ),
                 contentPadding:
                     const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
@@ -72,15 +68,15 @@ class _HomeScreenState extends State<HomeScreen> {
               future: _futureItineraries,
               builder: (context, snapshot) {
                 if (snapshot.connectionState != ConnectionState.done) {
-                  return const Center(
-                      child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator());
                 }
                 if (snapshot.hasError) {
                   return Center(
-                      child: Text(
-                    'Error: ${snapshot.error}',
-                    style: GoogleFonts.poppins(color: Colors.red),
-                  ));
+                    child: Text(
+                      'Error: ${snapshot.error}',
+                      style: GoogleFonts.poppins(color: Colors.red),
+                    ),
+                  );
                 }
 
                 final all = snapshot.data!;
@@ -96,9 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 final query = _searchCtrl.text.toLowerCase();
                 final filtered = all.where((itin) {
                   return itin.title.toLowerCase().contains(query) ||
-                      (itin.tags?.any((tag) =>
-                              tag.toLowerCase().contains(query)) ??
-                          false);
+                      (itin.tags?.any((tag) => tag.toLowerCase().contains(query)) ?? false);
                 }).toList();
 
                 return ListView.builder(
@@ -106,25 +100,27 @@ class _HomeScreenState extends State<HomeScreen> {
                   itemCount: filtered.length,
                   itemBuilder: (ctx, i) {
                     final itin = filtered[i];
-                    final imgBlock = itin.blocks.firstWhere(
-                      (b) => b.type == 'image',
-                      orElse: () => ItineraryBlock(
-                          id: 0,
-                          itineraryId: itin.id,
-                          dayGroupId: null,
-                          order: 0,
-                          type: 'image',
-                          content:
-                              'https://via.placeholder.com/400x200'),
-                    );
+
+                    // flatten all days' blocks, then pick first image
+                    final imageBlocks = itin.days
+                        .expand((day) => day.blocks)
+                        .where((b) => b.type == 'image');
+                    final imgBlock = imageBlocks.isNotEmpty
+                        ? imageBlocks.first
+                        : ItineraryBlock(
+                            id: 0,
+                            dayGroupId: itin.days.isNotEmpty ? itin.days.first.id : 0,
+                            order: 0,
+                            type: 'image',
+                            content: 'https://via.placeholder.com/400x200',
+                          );
 
                     return Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       child: InkWell(
-                        borderRadius: BorderRadius.circular(16),      // ⬅ NEW
+                        borderRadius: BorderRadius.circular(16),
                         onTap: () => Navigator.pushNamed(
-                            context, '/detail', arguments: itin.id),
+                          context, '/detail', arguments: itin.id),
                         child: Card(
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16)),
@@ -139,7 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 height: 180,
                                 width: double.infinity,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, _, _) => Container(
+                                errorBuilder: (_, __, ___) => Container(
                                   height: 180,
                                   color: Colors.grey.shade200,
                                   child: const Center(
@@ -155,9 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 child: Text(
                                   itin.title,
                                   style: GoogleFonts.poppins(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16,
-                                  ),
+                                    fontWeight: FontWeight.w600, fontSize: 16),
                                 ),
                               ),
                             ],
@@ -186,13 +180,10 @@ class _HomeScreenState extends State<HomeScreen> {
             Navigator.pushNamed(context, '/profile');
           }
         },
-        items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.add_circle), label: 'Create'),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.person), label: 'You'),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home),       label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.add_circle), label: 'Create'),
+          BottomNavigationBarItem(icon: Icon(Icons.person),     label: 'You'),
         ],
       ),
     );

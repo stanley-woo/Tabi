@@ -1,6 +1,10 @@
 from datetime import date
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, ForwardRef
 from pydantic import BaseModel, Field
+
+# Forward references for nested models
+ItineraryBlockRead = ForwardRef("ItineraryBlockRead")
+DayGroupRead       = ForwardRef("DayGroupRead")
 
 # -----------------------------
 # 1. User Schemas
@@ -27,8 +31,7 @@ class ItineraryBase(BaseModel):
     title: str = Field(..., description="Name of the itinerary")
     description: str = Field(..., description="Detailed description or summary")
     visibility: Literal["public", "private"] = Field("public", description="Access level of the itinerary")
-    tags: List[str] = Field(default_factory=list, description="List of tags for filtering")
-
+    tags: List[str] = Field(default_factory=list, description="Filtering Tags")
 
 class ItineraryCreate(ItineraryBase):
     """Fields required to create an itinerary."""
@@ -60,7 +63,6 @@ class ItineraryRead(ItineraryBase):
     creator_id: int
     slug: str
     parent_id: Optional[int] = None
-    blocks: List["ItineraryBlockRead"] = []
     days: List["DayGroupRead"] = []
 
     class Config:
@@ -80,6 +82,7 @@ class ItineraryBlockCreate(BaseModel):
 class ItineraryBlockRead(BaseModel):
     """Schema for returning a block's data."""
     id: int
+    day_group_id: int
     order: int
     type: str
     content: str
@@ -107,6 +110,12 @@ class DayGroupRead(DayGroupBase):
     """Schema for returning day group details."""
     id: int
     itinerary_id: int
+    blocks: List[ItineraryBlockRead] = []
 
     class Config:
         orm_mode = True
+
+# finalize forward refs for all three interdependent schemas
+ItineraryRead.model_rebuild()
+DayGroupRead.model_rebuild()
+ItineraryBlockRead.model_rebuild()
