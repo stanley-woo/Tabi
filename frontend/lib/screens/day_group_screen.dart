@@ -7,7 +7,7 @@ import '../services/day_group_service.dart';
 
 class DayGroupScreen extends StatefulWidget {
   final int itineraryId;
-  const DayGroupScreen({Key? key, required this.itineraryId}) : super(key: key);
+  const DayGroupScreen({super.key, required this.itineraryId});
 
   @override
   State<DayGroupScreen> createState() => _DayGroupScreenState();
@@ -31,10 +31,13 @@ class _DayGroupScreenState extends State<DayGroupScreen> {
   Future<void> _onCreateDay() async {
     // default to today; you might pop up a date picker instead
     final today = DateTime.now();
+    final currentDays = await DayGroupService.fetchDayGroups(widget.itineraryId);
+    final nextOrder = currentDays.length + 1;
     await DayGroupService.createDayGroup(
       itineraryId: widget.itineraryId,
       date: today,
       title: 'Day ${DateTime.now().day}',
+      order: nextOrder
     );
     _loadDayGroups();
   }

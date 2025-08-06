@@ -35,7 +35,7 @@ class DayGroupEditorModel {
 }
 
 class CreateItineraryScreen extends StatefulWidget {
-  const CreateItineraryScreen({Key? key}) : super(key: key);
+  const CreateItineraryScreen({super.key});
 
   @override
   State<CreateItineraryScreen> createState() =>
@@ -529,8 +529,7 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
             ...todayBlocks
                 .asMap()
                 .entries
-                .map((e) => _blockEditor(e.key, e.value))
-                .toList(),
+                .map((e) => _blockEditor(e.key, e.value)),
 
             // ─── Add-Block Buttons ─────────────────────────
             SingleChildScrollView(
@@ -791,9 +790,10 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
       }
 
       // 4,) Navigate to detail (or fetch detail and then navigate)
+      // ignore: use_build_context_synchronously
       Navigator.pushReplacementNamed(context, '/detail', arguments: itinId);
-
     } catch (e) {
+      // ignore: use_build_context_synchronously
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Save failed: $e')));
     }
   }

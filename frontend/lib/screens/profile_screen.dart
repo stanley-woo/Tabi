@@ -7,7 +7,7 @@ import '../services/profile_service.dart';
 /// Displays a user profile with a collapsible cover header, avatar,
 /// and tabs for Created & Saved itineraries.
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  const ProfileScreen({super.key});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -44,7 +44,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       body: DefaultTabController(
         length: 2,
         child: NestedScrollView(
-          headerSliverBuilder: (_, __) => [
+          headerSliverBuilder: (_, _) => [
             SliverAppBar(
               expandedHeight: 260,
               pinned: true,

@@ -6,7 +6,7 @@ Simple login stub: replace with real auth flow later
 */
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -34,6 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     if(ok) {
+      // ignore: use_build_context_synchronously
       Navigator.pushReplacementNamed(context, '/home');
     } else {
       setState(() => _error = 'Invalid Credentials.');}

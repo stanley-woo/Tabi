@@ -7,7 +7,7 @@ import '../services/itinerary_service.dart';
 /// Home screen fetching "Explore" itineraries from the backend,
 /// with search filtering and navigation into detail.
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -135,7 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 height: 180,
                                 width: double.infinity,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
+                                errorBuilder: (_, _, _) => Container(
                                   height: 180,
                                   color: Colors.grey.shade200,
                                   child: const Center(

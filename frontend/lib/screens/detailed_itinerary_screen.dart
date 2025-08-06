@@ -7,13 +7,11 @@ import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 import 'package:apple_maps_flutter/apple_maps_flutter.dart' as amaps;
 
 import '../models/itinerary.dart';
-import '../models/day_group.dart';
-import '../models/itinerary_block.dart';
 import '../services/itinerary_service.dart';
 
 class DetailedItineraryScreen extends StatefulWidget {
   final int id;
-  const DetailedItineraryScreen({Key? key, required this.id}) : super(key: key);
+  const DetailedItineraryScreen({super.key, required this.id});
 
   @override
   State<DetailedItineraryScreen> createState() => _DetailedItineraryScreenState();
@@ -95,7 +93,7 @@ class _DetailedItineraryScreenState extends State<DetailedItineraryScreen> {
                                       height: 150,
                                       child: Center(child: CircularProgressIndicator()),
                                     ),
-                              errorBuilder: (ctx, _, __) => Container(
+                              errorBuilder: (ctx, _, _) => Container(
                                 height: 150,
                                 color: Colors.grey.shade200,
                                 child: const Center(
@@ -151,12 +149,12 @@ class _DetailedItineraryScreenState extends State<DetailedItineraryScreen> {
                         default:
                           return const SizedBox.shrink();
                       }
-                    }).toList(),
+                    }),
 
                     const SizedBox(height: 32), // space before next day
                   ],
                 );
-              }).toList(),
+              }),
             ],
           ),
         );
