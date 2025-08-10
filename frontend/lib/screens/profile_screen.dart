@@ -3,9 +3,32 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/itinerary.dart';
 import '../models/itinerary_block.dart';
 import '../services/profile_service.dart';
+import 'package:flutter/services.dart';
 
-/// Displays a user profile with a collapsible cover header, avatar,
-/// and tabs for Created & Saved itineraries.
+class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar _tabBar;
+  final Color? backgroundColor;
+  _SliverAppBarDelegate(this._tabBar, {this.backgroundColor});
+
+  @override
+  double get minExtent => _tabBar.preferredSize.height;
+  @override
+  double get maxExtent => _tabBar.preferredSize.height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    // Use the app's scaffold bg (your silver) behind the tabs
+    return Container(
+      color: backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
+      child: _tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _SliverAppBarDelegate old) =>
+      old._tabBar != _tabBar || old.backgroundColor != backgroundColor;
+}
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -38,44 +61,42 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   Widget build(BuildContext context) {
-    final accent = Theme.of(context).colorScheme.secondary;
 
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       body: DefaultTabController(
         length: 2,
         child: NestedScrollView(
           headerSliverBuilder: (_, _) => [
+            // 1) Only the cover/avatar/username/stats in the SliverAppBar:
             SliverAppBar(
+              systemOverlayStyle: SystemUiOverlayStyle.light,
               expandedHeight: 260,
               pinned: true,
-              backgroundColor: Colors.white,
+              backgroundColor: Colors.transparent,
               elevation: 0,
-              leading: const BackButton(color: Colors.black),
+              leading: const BackButton(color: Colors.white),
               flexibleSpace: FlexibleSpaceBar(
-                titlePadding: const EdgeInsets.only(left: 16, bottom: 48),
-                title: Text(
-                  '@$_username',
-                  style: GoogleFonts.poppins(
-                      color: Colors.black, fontWeight: FontWeight.w600),
-                ),
                 background: Stack(
                   fit: StackFit.expand,
                   children: [
                     Image.network(_coverUrl, fit: BoxFit.cover),
-                    // dark gradient for readability
-                    const DecoratedBox(
+                    // gradient overlay
+                    DecoratedBox(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Colors.black45, Colors.transparent],
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withAlpha(153),
+                            Colors.black.withAlpha(25),
+                          ],
                         ),
                       ),
                     ),
                     // avatar
                     Positioned(
-                      bottom: 16,
-                      left: 16,
+                      bottom: 16, left: 16,
                       child: CircleAvatar(
                         radius: 48,
                         backgroundColor: Colors.white,
@@ -85,65 +106,97 @@ class _ProfileScreenState extends State<ProfileScreen>
                         ),
                       ),
                     ),
+                    // stats row
+                    Positioned(
+                      bottom: 16, left: 128, right: 16,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _Stat(label: 'Places',    value: '69'),
+                          _Stat(label: 'Followers', value: '643k'),
+                          _Stat(label: 'Trips',     value: '262'),
+                        ],
+                      ),
+                    ),
+                    // username above stats (optional if you want it here)
+                    Positioned(
+                      bottom: 16 + 48 + 8, // avatar radius + small gap
+                      left: 128,
+                      child: Text(
+                        '@$_username',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-              bottom: TabBar(
-                controller: _tabController,
-                indicatorColor: accent,
-                indicatorWeight: 3,
-                labelColor: Colors.black,
-                labelStyle:
-                    GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                unselectedLabelColor: Colors.grey[600],
-                tabs: const [
-                  Tab(text: 'Created'),
-                  Tab(text: 'Saved'),
-                ],
+            ),
+
+            // 2) Your sticky TabBar in its own sliver:
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _SliverAppBarDelegate(
+                TabBar(
+                  controller: _tabController,
+                  indicatorColor: Colors.black,
+                  indicatorWeight: 3,
+                  labelColor: Colors.black,
+                  unselectedLabelColor: Colors.black,
+                  labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                  tabs: const [
+                    Tab(text: 'Created'),
+                    Tab(text: 'Saved'),
+                  ],
+                ),
               ),
             ),
           ],
+
+          // 3) The TabBarView below…
           body: TabBarView(
             controller: _tabController,
             children: [
-              // CREATED TAB
-              FutureBuilder<List<Itinerary>>(
-                future: _futureCreated,
-                builder: (ctx, snap) {
-                  if (snap.connectionState != ConnectionState.done) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (snap.hasError) {
-                    return Center(
-                        child: Text('Error: ${snap.error}',
-                            style: GoogleFonts.poppins()));
-                  }
-                  final list = snap.data!;
-                  if (list.isEmpty) {
-                    return Center(
-                      child: Text('No trips here yet',
-                          style: GoogleFonts.poppins(fontSize: 16)),
-                    );
-                  }
-                  return ListView.builder(
-                    padding: const EdgeInsets.all(12),
-                    itemCount: list.length,
-                    itemBuilder: (c, i) => _buildItinCard(list[i]),
-                  );
-                },
-              ),
-
-              // SAVED TAB (placeholder)
-              Center(
-                child: Text('No saved trips yet',
-                    style: GoogleFonts.poppins(fontSize: 16)),
-              ),
+              _buildCreatedTab(),
+              _buildSavedTab(),
             ],
           ),
         ),
       ),
     );
   }
+
+
+  Widget _buildCreatedTab() {
+    return FutureBuilder<List<Itinerary>>(
+      future: _futureCreated,
+      builder: (ctx, snap) {
+        if (snap.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snap.hasError) {
+          return Center(child: Text('Error: ${snap.error}', style: GoogleFonts.poppins()));
+        }
+        final list = snap.data ?? [];
+        if (list.isEmpty) {
+          return Center(child: Text('No trips here yet', style: GoogleFonts.poppins(fontSize: 16)));
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(12),
+          itemCount: list.length,
+          itemBuilder: (c, i) => _buildItinCard(list[i]),
+        );
+      },
+    );
+  }
+
+Widget _buildSavedTab() {
+  // placeholder for now
+  return Center(child: Text('No saved trips yet', style: GoogleFonts.poppins(fontSize: 16)));
+}
 
   Widget _buildItinCard(Itinerary itin) {
     // 1. Flatten all blocks across days:
@@ -181,6 +234,22 @@ class _ProfileScreenState extends State<ProfileScreen>
           ],
         ),
       ),
+    );
+  }
+}
+
+class _Stat extends StatelessWidget {
+  final String label, value;
+  const _Stat({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(value, style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 4),
+        Text(label, style: TextStyle(color: Colors.white70, fontSize: 12))
+      ],
     );
   }
 }
