@@ -8,6 +8,12 @@ import 'screens/create_itinerary_screen.dart';
 import 'screens/map_picker_screen.dart';
 
 
+class ProfileArgs {
+  final String username;
+  final String currentUser;
+  const ProfileArgs(this.username, this.currentUser);
+}
+
 void main() {
   runApp(const Tabi());
 }
@@ -34,7 +40,12 @@ class Tabi extends StatelessWidget {
           return DetailedItineraryScreen(id: id);
         },
         '/map_picker': (_) => const MapPickerScreen(),
-        '/profile': (context) => const ProfileScreen(),
+        '/profile': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments as ProfileArgs?;
+          final username = args?.username ?? 'julieee_mun';
+          final currentUser = args?.currentUser ?? 'julieee_mun';
+          return ProfileScreen(username: username, currentUser: currentUser);
+        },
       },
     );
   }

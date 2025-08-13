@@ -1,17 +1,25 @@
+import datetime as dt
 from datetime import date
 from typing import List, Optional
 
 from sqlalchemy import Column, ForeignKey, UniqueConstraint, JSON
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import Field, Relationship, SQLModel,String
 
+def utcnow() -> dt.datetime:
+    """Return a timezone-aware UTC datetime for default_factory."""
+    return dt.datetime.now(dt.timezone.utc)
 
 class User(SQLModel, table=True):
-    __table_args__ = (UniqueConstraint("username"),)
-
     id: Optional[int] = Field(default=None, primary_key=True)
-    username: str
+    username: str = Field(sa_column=Column(String, unique=True, index=True))
+    display_name: str | None = None
+    avatar_name: str | None = None
+    header_url: str | None = None
+    bio: str | None = None
     # existing relationship to itineraries
     itineraries: List["Itinerary"] = Relationship(back_populates="creator")
+
+
 
 
 class DayGroup(SQLModel, table=True):
@@ -54,3 +62,21 @@ class ItineraryBlock(SQLModel, table=True):
     content: str
 
     day_group: DayGroup = Relationship(back_populates="blocks")
+
+class Bookmark(SQLModel, table = True):
+    __tablename__ = "bookmark"
+    __table_args__ = (UniqueConstraint("user_id", "itinerary_id"),)
+
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    itinerary_id: int = Field(foreign_key="itinerary.id", index=True)
+    created_at: dt.datetime = Field(default_factory=utcnow)
+
+class Follow(SQLModel, table=True):
+    __tablename__ = "follow"
+    __table_args__ = (UniqueConstraint("follower_id", "following_id"),)
+
+    id: int | None = Field(default=None, primary_key=True)
+    follower_id: int = Field(foreign_key="user.id", index=True)
+    following_id: int = Field(foreign_key="user.id", index=True)
+    created_at: dt.datetime = Field(default_factory=utcnow)

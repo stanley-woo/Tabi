@@ -12,12 +12,19 @@ DayGroupRead       = ForwardRef("DayGroupRead")
 class UserCreate(BaseModel):
     """Schema for creating a new user."""
     username: str
+    avatar_name: Optional[str] = None
+    header_irl: Optional[str] = None
+    bio: Optional[str] = None
 
 
 class UserRead(BaseModel):
     """Schema for returning user info."""
     id: int
     username: str
+    display_name: Optional[str] = None
+    avatar_name: Optional[str] = None
+    header_url: Optional[str] = None
+    bio: Optional[str] = None
 
     class Config:
         orm_mode = True
@@ -114,6 +121,36 @@ class DayGroupRead(DayGroupBase):
 
     class Config:
         orm_mode = True
+
+
+# -----------------------------
+# 5. Profile Schemas
+# -----------------------------
+class ProfileStats(BaseModel):
+    places: int
+    followers: int
+    trips: int
+    saved: int
+
+class ProfileOut(BaseModel):
+    username: str
+    display_name: Optional[str] = None
+    avatar_url: Optional[str] = None
+    header_url: Optional[str] = None
+    bio: Optional[str] = None
+    stats: ProfileStats
+
+class ProfileUpdate(BaseModel):
+    display_name: Optional[str] = None
+    avatar_name: Optional[str] = None
+    header_url: Optional[str] = None
+    bio: Optional[str] = None
+
+class BookmarkIn(BaseModel):
+    itinerary_id: int
+
+class FollowIn(BaseModel):
+    target_username: str
 
 # finalize forward refs for all three interdependent schemas
 ItineraryRead.model_rebuild()

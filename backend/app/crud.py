@@ -12,7 +12,8 @@ from .schemas import UserCreate, DayGroupCreate, ItineraryCreate
 # ----------------------------------
 def create_user(session: Session, data: UserCreate) -> User:
     """Create a new user."""
-    user = User(username=data.username)
+    payload = data.model_dump(exclude_unset=True)
+    user = User(**payload)
     session.add(user)
     session.commit()
     session.refresh(user)
