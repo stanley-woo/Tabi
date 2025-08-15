@@ -24,11 +24,12 @@ class User(SQLModel, table=True):
 
 class DayGroup(SQLModel, table=True):
     __tablename__ = "day_group"
+    __table_args__ = (UniqueConstraint("itinerary_id", "order"),)
 
     id: Optional[int] = Field(default=None, primary_key=True)
     itinerary_id: int = Field(foreign_key="itinerary.id", nullable=False)
     date: date
-    order: int = Field(sa_column_kwargs={"default": 0})
+    order: int
     title: Optional[str] = None
 
     # link back to parent Itinerary
@@ -54,9 +55,10 @@ class Itinerary(SQLModel, table=True):
 
 class ItineraryBlock(SQLModel, table=True):
     __tablename__ = "itineraryblock"
+    __table_args__ = (UniqueConstraint("day_group_id", "order"),)
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    day_group_id: int = Field(foreign_key="day_group.id", nullable=False)
+    day_group_id: int = Field(foreign_key="day_group.id", nullable=False, index=True)
     order: int
     type: str
     content: str

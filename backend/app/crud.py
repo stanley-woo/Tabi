@@ -119,8 +119,14 @@ def create_day_group(session: Session, itinerary_id: int, data: DayGroupCreate) 
     if not session.get(Itinerary, itinerary_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Itinerary not found.")
     
-    max_order = session.exec(select(DayGroup.order).where(DayGroup.itinerary_id == itinerary_id).order_by(DayGroup.order.desc())).first() or 0
-
+    max_order = (
+    session.exec(
+        select(DayGroup.order)
+        .where(DayGroup.itinerary_id == itinerary_id)
+        .order_by(DayGroup.order.desc())
+    ).first()
+    or 0
+)
     payload = data.model_dump(exclude={"order"})
     day = DayGroup(itinerary_id=itinerary_id, order=max_order+1, **payload)
 

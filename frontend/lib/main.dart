@@ -14,6 +14,8 @@ class ProfileArgs {
   const ProfileArgs(this.username, this.currentUser);
 }
 
+final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
+
 void main() {
   runApp(const Tabi());
 }
@@ -24,6 +26,7 @@ class Tabi extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(debugShowCheckedModeBanner: false, title: 'Tabi', 
+    navigatorObservers: [routeObserver],
       theme: ThemeData(
         primaryColor: const Color(0xFF005B4F),
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal)

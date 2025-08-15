@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/main.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/profile_service.dart';
 import '../services/itinerary_service.dart';
@@ -41,7 +42,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, RouteAware {
   late final TabController _tabController;
   late Future<Map<String, dynamic>> _futureProfile;
   late Future<List<Itinerary>> _futureCreated;
@@ -68,9 +69,21 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    routeObserver.subscribe(this, ModalRoute.of(context)!);
+  }
+
+  @override
   void dispose() {
+    routeObserver.unsubscribe(this);
     _tabController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    _refresh();
   }
 
   @override

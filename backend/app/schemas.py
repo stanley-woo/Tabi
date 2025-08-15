@@ -81,7 +81,7 @@ class ItineraryRead(ItineraryBase):
 # -----------------------------
 class ItineraryBlockCreate(BaseModel):
     """Schema for creating a new block within an itinerary."""
-    order: int
+    order: int | None = None
     type: str
     content: str
 
