@@ -1,33 +1,50 @@
-// Purpose: when user "logs in" (demo@tabi.app), we map to Julie's username,
-// resolve her numeric id (for create), and keep both in memory.
-
+// lib/state/auth_store.dart
 import 'package:flutter/foundation.dart';
 import '../services/profile_service.dart';
 
-class AuthStore  extends ChangeNotifier {
+class AuthStore extends ChangeNotifier {
   String? username;
   int? userId;
   bool loading = false;
 
-  /// For demo: map email → username; then fetch userId from /users.
-  Future<void> loginWithDemoEmail(String email) async {
-    loading = true;
-    notifyListeners();
+  String get currentUsername => username ?? 'julieee_mun'; // safe fallback
+  bool get isLoggedIn => username != null && userId != null;
 
-    // 1) map demo email → username
-    if (email.toLowerCase() == 'demo@tabi.app') {
+  Future<void> loginWithDemoEmail(String email) async {
+    loading = true; notifyListeners();
+    final e = email.toLowerCase();
+
+    // Map demo emails -> usernames
+    if (e == 'demo@tabi.app' || e == 'julie@tabi.app') {
       username = 'julieee_mun';
+    } else if (e == 'sarah@tabi.app') {
+      username = 'sarah_kuo';
     } else {
-      // fallback: treat local-part as username (or handle your own logic)
       username = email.split('@').first;
     }
 
-    // 2) resolve numeric id so we can create itineraries
-    userId = await ProfileService.getUserIdByUsername(username!);
-
-    loading = false;
-    notifyListeners();
+    await _resolveUserId();
+    loading = false; notifyListeners();
   }
 
-  bool get isLoggedIn => username != null && userId != null;
+  // Handy direct switch (no email needed)
+  Future<void> loginAs(String uname) async {
+    loading = true; notifyListeners();
+    username = uname;
+    await _resolveUserId();
+    loading = false; notifyListeners();
+  }
+
+  Future<void> _resolveUserId() async {
+    userId = await ProfileService.getUserIdByUsername(username!);
+    if (userId == null) {
+      // (Optional) create the user here or throw
+      debugPrint('AuthStore: username "$username" not found on server.');
+    }
+  }
+
+  void logout() {
+    username = null; userId = null;
+    notifyListeners();
+  }
 }

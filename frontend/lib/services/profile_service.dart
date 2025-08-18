@@ -72,4 +72,41 @@ class ProfileService {
     final match = list.cast<Map<String, dynamic>>().where((u) => u['username'] == username).toList();
     return match.isNotEmpty ? (match.first['id'] as int) : null;
   }
+
+  /// List all users (backend: GET /users)
+  static Future<List<Map<String, dynamic>>> listUsers() async {
+    final r = await http.get(Uri.parse('$baseUrl/users'));
+    final data = jsonOrThrow(r) as List<dynamic>;
+    return data.cast<Map<String, dynamic>>();
+  }
+
+  /// Convenience: client-side search by username or display_name
+  static Future<List<Map<String, dynamic>>> searchUsers(String query) async {
+    final q = query.trim().toLowerCase();
+    final all = await listUsers();
+    if (q.isEmpty) return all;
+    return all.where((u) {
+      final uname = (u['username'] ?? '').toString().toLowerCase();
+      final dname = (u['display_name'] ?? '').toString().toLowerCase();
+      return uname.contains(q) || dname.contains(q);
+    }).toList();
+  }
+
+  /// PUT /users/{username}/profile - send only the fields people want to change
+  static Future<Map<String, dynamic>> updateProfile (String username, {String? displayName, String? bio, String? avatarName, String? headerUrl}) async {
+    final body = <String, dynamic>{};
+    if (displayName != null) body['display_name'] = displayName;
+    if (bio != null) body['bio'] = bio;
+    if (avatarName != null) body['avatar_name'] = avatarName;
+    if (headerUrl != null) body['header_url'] = headerUrl;
+
+    final r = await http.put(Uri.parse('$baseUrl/users/$username/profile'), headers: {'Content-type' : 'application/json'}, body: json.encode(body));
+    return jsonOrThrow(r) as Map<String, dynamic>;
+  }
+
+  /// Quick check: is `username` already saving this itinerary?
+  static Future<bool> isTripSaved(String username, int itineraryId) async {
+    final saved = await fetchSaved(username);
+    return saved.any((it) => (it as Map<String, dynamic>)['id'] == itineraryId);
+  }
 }

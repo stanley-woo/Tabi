@@ -1,23 +1,28 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
-import 'package:frontend/screens/home_screen.dart';
-import 'package:frontend/screens/profile_screen.dart';
-import 'package:frontend/screens/detailed_itinerary_screen.dart';
+import 'package:provider/provider.dart';
+
+import 'state/auth_store.dart';
+import 'screens/home_screen.dart';
+import 'screens/profile_screen.dart';
+import 'screens/detailed_itinerary_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/create_itinerary_screen.dart';
 import 'screens/map_picker_screen.dart';
+import 'navigation/profile_args.dart' as nav;
 
-
-class ProfileArgs {
-  final String username;
-  final String currentUser;
-  const ProfileArgs(this.username, this.currentUser);
-}
-
-final RouteObserver<ModalRoute<void>> routeObserver = RouteObserver<ModalRoute<void>>();
+final RouteObserver<ModalRoute<void>> routeObserver =
+    RouteObserver<ModalRoute<void>>();
 
 void main() {
-  runApp(const Tabi());
+  runApp(
+    // CHANGED: provide AuthStore and log in as Sarah by default
+    ChangeNotifierProvider(
+      create: (_) => AuthStore()..loginAs('sarah_kuo'),
+      child: const Tabi(),
+    ),
+  );
 }
 
 class Tabi extends StatelessWidget {
@@ -25,13 +30,14 @@ class Tabi extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(debugShowCheckedModeBanner: false, title: 'Tabi', 
-    navigatorObservers: [routeObserver],
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Tabi',
+      navigatorObservers: [routeObserver],
       theme: ThemeData(
         primaryColor: const Color(0xFF005B4F),
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal)
-        ),
-      // useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+      ),
       initialRoute: '/',
       routes: {
         '/': (context) => const SplashScreen(),
@@ -43,11 +49,20 @@ class Tabi extends StatelessWidget {
           return DetailedItineraryScreen(id: id);
         },
         '/map_picker': (_) => const MapPickerScreen(),
+
+        // CHANGED: resolve currentUser from AuthStore; default to Julie only if missing
         '/profile': (context) {
-          final args = ModalRoute.of(context)?.settings.arguments as ProfileArgs?;
-          final username = args?.username ?? 'julieee_mun';
-          final currentUser = args?.currentUser ?? 'julieee_mun';
-          return ProfileScreen(username: username, currentUser: currentUser);
+          final auth = Provider.of<AuthStore?>(context, listen: false);
+          final me = auth?.username ?? 'julieee_mun'; // fallback = Julie
+
+          final Object? raw = ModalRoute.of(context)?.settings.arguments;
+          if (raw is nav.ProfileArgs) {
+            // If a target username was provided, view that profile.
+            return ProfileScreen(username: raw.username, currentUser: me);
+          }
+
+          // No args? View *your own* profile (me vs Julie fallback).
+          return ProfileScreen(username: me, currentUser: me);
         },
       },
     );
