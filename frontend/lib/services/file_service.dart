@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'api.dart' show baseUrl;
 
 class FileService {
   static const _base = 'http://localhost:8000';
@@ -23,4 +24,12 @@ class FileService {
     // If the server returns a relative path ("/static/…"), prepend the base.
     return urlPath.startsWith('http') ? urlPath : '$_base$urlPath';
   }
+
+  static String absoluteUrl(String path) {
+      final p = path.trim();
+      if (p.startsWith('assets/')) return p;                 // <- keep assets local
+      if (p.startsWith('http://') || p.startsWith('https://')) return p;
+      final withSlash = p.startsWith('/') ? p : '/$p';
+      return '$baseUrl$withSlash';
+    }
 }

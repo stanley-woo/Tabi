@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/widgets/image_ref.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../services/profile_service.dart';
@@ -119,7 +120,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: NestedScrollView(
-          headerSliverBuilder: (_, __) => [
+          headerSliverBuilder: (_, _) => [
             SliverAppBar(
               expandedHeight: 260,
               pinned: true,
@@ -152,8 +153,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                   // Unpack header payload
                   final p = snap.data!;
                   final uname = p['username'] as String? ?? widget.username;
-                  final headerUrl = p['header_url'] as String?;
-                  final avatarUrl = (p['avatar_url'] ?? p['avatar_name']) as String?;
+                  final headerUrl = resolveImageRef(url: p['header_url'] as String?, name: p['header_name'] as String?);
+                  final avatarUrl = resolveImageRef(url: p['avatar_url'] as String?, name: p['avatar_name'] as String?);
                   final bio = p['bio'] as String?;
                   final stats = p['stats'] as Map<String, dynamic>? ?? {};
                   final places = stats['places'] ?? 0;
@@ -165,7 +166,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                       fit: StackFit.expand,
                       children: [
                         if (headerUrl != null)
-                          Image.network(headerUrl, fit: BoxFit.cover),
+                          imageFromRef(headerUrl, fit: BoxFit.cover),
+                          // Image.network(headerUrl, fit: BoxFit.cover),
                         const DecoratedBox(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
@@ -184,7 +186,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                               backgroundColor: Colors.white,
                               child: CircleAvatar(
                                 radius: 44,
-                                backgroundImage: NetworkImage(avatarUrl),
+                                backgroundImage: providerFromRef(avatarUrl),
                               ),
                             ),
                           ),
@@ -481,17 +483,18 @@ class _ItinCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // cover
-            Image.network(
-              cover,
-              height: 140,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                height: 140,
-                color: Colors.grey.shade200,
-                child: const Center(child: Icon(Icons.broken_image)),
-              ),
-            ),
+            imageFromRef(cover, height: 140, width: double.infinity, fit: BoxFit.cover),
+            // Image.network(
+            //   cover,
+            //   height: 140,
+            //   width: double.infinity,
+            //   fit: BoxFit.cover,
+            //   errorBuilder: (_, __, ___) => Container(
+            //     height: 140,
+            //     color: Colors.grey.shade200,
+            //     child: const Center(child: Icon(Icons.broken_image)),
+            //   ),
+            // ),
             // title row
             ListTile(
               title: Text(itin.title,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/widgets/image_ref.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
@@ -191,20 +192,21 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Image.network(
-                                imgBlock.content,
-                                height: 180,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
-                                  height: 180,
-                                  color: Colors.grey.shade200,
-                                  child: const Center(
-                                    child: Icon(Icons.broken_image,
-                                        size: 40, color: Colors.black26),
-                                  ),
-                                ),
-                              ),
+                              imageFromRef(imgBlock.content, height: 180, width: double.infinity, fit: BoxFit.cover),
+                              // Image.network(
+                              //   imgBlock.content,
+                              //   height: 180,
+                              //   width: double.infinity,
+                              //   fit: BoxFit.cover,
+                              //   errorBuilder: (_, __, ___) => Container(
+                              //     height: 180,
+                              //     color: Colors.grey.shade200,
+                              //     child: const Center(
+                              //       child: Icon(Icons.broken_image,
+                              //           size: 40, color: Colors.black26),
+                              //     ),
+                              //   ),
+                              // ),
                               Padding(
                                 padding: const EdgeInsets.all(12),
                                 child: Text(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/widgets/image_ref.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/itinerary.dart';
 import '../services/itinerary_service.dart';
@@ -243,22 +244,24 @@ class _PeoplePaneState extends State<_PeoplePane> {
           separatorBuilder: (_, __) => const SizedBox(height: 8),
           itemBuilder: (_, i) {
             final u = people[i];
-            final avatar = (u['avatar_url'] ?? u['avatar_name'])?.toString();
+            final avatar = resolveImageRef(url: u['avatar_url'] as String?, name: u['avatar_name'] as String?);
+            final imgProv = providerFromRef(avatar);
             final username = u['username'] as String;
 
             return ListTile(
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
               tileColor: Colors.grey[100],
-              leading: CircleAvatar(
-                backgroundImage:
-                    (avatar != null && avatar.isNotEmpty)
-                        ? NetworkImage(avatar)
-                        : null,
-                child: (avatar == null || avatar.isEmpty)
-                    ? const Icon(Icons.person)
-                    : null,
-              ),
+              leading: CircleAvatar(backgroundImage: imgProv, child: imgProv == null ? const Icon(Icons.person) : null),
+              // leading: CircleAvatar(
+              //   backgroundImage:
+              //       (avatar != null && avatar.isNotEmpty)
+              //           ? NetworkImage(avatar)
+              //           : null,
+              //   child: (avatar == null || avatar.isEmpty)
+              //       ? const Icon(Icons.person)
+              //       : null,
+              // ),
               title: Text(
                 (u['display_name'] as String?) ?? username,
                 style:

@@ -1,16 +1,17 @@
 // File: lib/screens/detailed_itinerary_screen.dart
-
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:frontend/widgets/image_ref.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 import 'package:apple_maps_flutter/apple_maps_flutter.dart' as amaps;
-import 'package:provider/provider.dart';                  // NEW
+import 'package:provider/provider.dart';
 
-import '../state/auth_store.dart';                         // NEW
+import '../state/auth_store.dart';
 import '../models/itinerary.dart';
 import '../services/itinerary_service.dart';
 import '../services/profile_service.dart';
+import '../widgets/image_ref.dart';
 
 class DetailedItineraryScreen extends StatefulWidget {
   final int id;
@@ -155,22 +156,23 @@ class _DetailedItineraryScreenState extends State<DetailedItineraryScreen> {
                         case 'photo': // accept both
                           return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Image.network(
-                              b.content,
-                              fit: BoxFit.cover,
-                              loadingBuilder: (ctx, child, prog) =>
-                                  prog == null ? child : const SizedBox(
-                                    height: 150,
-                                    child: Center(child: CircularProgressIndicator()),
-                                  ),
-                              errorBuilder: (ctx, _, __) => Container(
-                                height: 150,
-                                color: Colors.grey.shade200,
-                                child: const Center(
-                                  child: Icon(Icons.broken_image, size: 40, color: Colors.black26),
-                                ),
-                              ),
-                            ),
+                            child: imageFromRef(b.content, height: 180, width: double.infinity, fit: BoxFit.cover),
+                            // child: Image.network(
+                            //   b.content,
+                            //   fit: BoxFit.cover,
+                            //   loadingBuilder: (ctx, child, prog) =>
+                            //       prog == null ? child : const SizedBox(
+                            //         height: 150,
+                            //         child: Center(child: CircularProgressIndicator()),
+                            //       ),
+                            //   errorBuilder: (ctx, _, __) => Container(
+                            //     height: 150,
+                            //     color: Colors.grey.shade200,
+                            //     child: const Center(
+                            //       child: Icon(Icons.broken_image, size: 40, color: Colors.black26),
+                            //     ),
+                            //   ),
+                            // ),
                           );
 
                         case 'map':

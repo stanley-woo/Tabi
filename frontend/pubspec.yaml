@@ -57,8 +57,19 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/shirogane.jpg
-    - assets/cafe.jpg
-    - assets/lantern.jpg
+    - assets/hong_kong_pic_1.jpg
+    - assets/hong_kong_cover.jpg
+    - assets/new_york_cover.jpg
+    - assets/new_york_one_world_trade_center.jpg
+    - assets/savannah_demers_cover.jpg
+    - assets/savannah_demers_icons.jpg
+    - assets/sydney_sweeney_icon.jpg
+    - assets/sydney_sweeney.jpg
+    - assets/tokyo_cherryblossom.jpg
+    - assets/tokyo_cover.jpg
+    - assets/pikachu_champ.jpg
+    - assets/pikachu_profile.jpg
+    - assets/rumi_background.jpg
+    - assets/rumi_profile.jpg
     - assets/tabi_logo.png
-    - assets/map_style.json
+    - assets/app_icon.png

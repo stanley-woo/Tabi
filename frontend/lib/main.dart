@@ -19,7 +19,7 @@ void main() {
   runApp(
     // CHANGED: provide AuthStore and log in as Sarah by default
     ChangeNotifierProvider(
-      create: (_) => AuthStore()..loginAs('sarah_kuo'),
+      create: (_) => AuthStore()..loginAs('pikachu'),
       child: const Tabi(),
     ),
   );
