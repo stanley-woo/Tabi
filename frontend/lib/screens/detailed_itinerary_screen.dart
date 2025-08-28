@@ -12,7 +12,6 @@ import '../state/auth_store.dart';
 import '../models/itinerary.dart';
 import '../services/itinerary_service.dart';
 import '../services/profile_service.dart';
-import '../widgets/image_ref.dart';
 
 class DetailedItineraryScreen extends StatefulWidget {
   final int id;
@@ -124,7 +123,6 @@ class _DetailedItineraryScreenState extends State<DetailedItineraryScreen> {
                 icon: const Icon(Icons.fork_right),
                 onPressed: () {
                   final it = itin;
-                  if(it == null) return;
                   Navigator.pushNamed(context, '/create', arguments: CreateItineraryArgs(template: it));
                 },
               )
