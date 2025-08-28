@@ -139,6 +139,7 @@ class _DetailedItineraryScreenState extends State<DetailedItineraryScreen> {
               ...itin.days.map((day) {
                 // Safe date formatting whether String or DateTime
                 final d = day.date;
+                // ignore: unnecessary_type_check
                 final String dateStr = (d is DateTime)
                     ? d.toIso8601String().substring(0, 10)
                     : (d.toString().length >= 10 ? d.toString().substring(0, 10) : d.toString());
