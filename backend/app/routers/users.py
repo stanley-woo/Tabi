@@ -78,7 +78,7 @@ def get_profile(username: str, session: Session = Depends(get_session)):
     places = 0
 
     return ProfileOut(
-        id=u.id,
+        id=user.id,
         username=user.username,
         display_name=user.display_name,
         avatar_url=to_avatar_url(user.avatar_name),  # map name -> URL

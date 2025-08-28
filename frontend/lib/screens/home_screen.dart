@@ -145,7 +145,6 @@ class _HomeScreenState extends State<HomeScreen> {
     ]).then<List<Itinerary>>((res) {
       final all = res[0] as List<Itinerary>;
       final followingIds = Set<int>.from(res[1] as List<int>);
-      print('Following IDs = $followingIds, total itins = ${all.length}');
       return all.where((i) => followingIds.contains(i.creatorId)).toList();
     });
 
