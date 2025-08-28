@@ -109,4 +109,23 @@ class ProfileService {
     final saved = await fetchSaved(username);
     return saved.any((it) => (it as Map<String, dynamic>)['id'] == itineraryId);
   }
+
+  static Future<List<int>> fetchFollowingIds(String username) async {
+    final r = await http.get(Uri.parse('$baseUrl/users/$username/following'));
+    final data = jsonOrThrow(r);
+    if (data is! List) return const <int>[];   // extra guard
+
+    final ids = data.map<int?>((raw) {
+      if (raw is! Map) return null;
+      final any = raw['id'] ?? raw['user_id'] ?? raw['following_id'];
+      if (any is int) return any;
+      if (any is num) return any.toInt();
+      if (any is String) return int.tryParse(any);
+      return null;
+    }).whereType<int>().toList();
+
+    // (optional) dedupe while preserving order
+    final seen = <int>{};
+    return ids.where((id) => seen.add(id)).toList();
+  }
 }

@@ -7,6 +7,7 @@ import '../state/auth_store.dart';
 import '../models/itinerary.dart';
 import '../models/itinerary_block.dart';
 import '../services/itinerary_service.dart';
+import '../services/profile_service.dart';
 import 'home_search_sheet.dart';
 import 'package:frontend/navigation/profile_args.dart' as nav;
 
@@ -45,7 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
         expand: false,
         initialChildSize: 0.85,
         maxChildSize: 0.9,
-        builder: (_, __) => HomeSearchSheet(
+        builder: (_, _) => HomeSearchSheet(
           currentUser: me,
           initialQuery: _query,
         ),
@@ -59,201 +60,167 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // watch so UI updates if the logged-in user changes
     final me = context.watch<AuthStore>().username ?? 'julieee_mun';
     final q = (_query ?? '').toLowerCase();
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 1,
-        title: Text(
-          'Explore Itineraries',
-          style: GoogleFonts.poppins(
-            color: Colors.black,
-            fontWeight: FontWeight.w600,
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0, // rely on shape for the hairline
+          shape: const Border(
+            bottom: BorderSide(color: Color(0x14000000), width: 1),
           ),
-        ),
-        centerTitle: true,
-      ),
-
-      body: Column(
-        children: [
-          // Search pill
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(30),
-              onTap: _openSearch,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  children: [
-                    const Icon(Icons.search, color: Colors.black54),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        q.isEmpty ? 'Search trips or people' : _query!,
-                        style: GoogleFonts.poppins(color: Colors.black54),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+          toolbarHeight: 0, // hide normal title row
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(kTextTabBarHeight), // 48
+            child: SizedBox(
+              height: kTextTabBarHeight, // if you still see 1px overflow, make this 50
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TabBar(
+                      labelColor: Colors.black,
+                      unselectedLabelColor: Colors.black45,
+                      indicatorColor: Colors.teal,
+                      tabs: const [
+                        Tab(text: 'Explore'),
+                        Tab(text: 'Following'),
+                      ],
                     ),
-                    if (q.isNotEmpty)
-                      IconButton(
-                        tooltip: 'Clear',
-                        icon: const Icon(Icons.close,
-                            size: 18, color: Colors.black45),
-                        onPressed: () => setState(() => _query = ''),
-                      ),
-                  ],
-                ),
+                  ),
+                  IconButton(
+                    tooltip: 'Search',
+                    icon: const Icon(Icons.search, color: Colors.black87),
+                    onPressed: _openSearch,
+                  ),
+                ],
               ),
             ),
           ),
+        ),
+        body: TabBarView(
+          children: [
+            _explorePane(q),        // uses your existing list logic
+            _followingPane(q, me),  // following feed
+          ],
+        ),
+        // Bottom nav
+        bottomNavigationBar: BottomNavigationBar(
+          backgroundColor: Colors.white,
+          selectedItemColor: Theme.of(context).primaryColor,
+          unselectedItemColor: Colors.grey,
+          currentIndex: 0,
+          onTap: (i) {
+            if (i == 1) {
+              Navigator.pushNamed(context, '/create');
+            } else if (i == 2) {
+              Navigator.pushNamed(
+                context,
+                '/profile',
+                arguments: nav.ProfileArgs(me, me), // logged-in user
+              );
+            }
+          },
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+            BottomNavigationBarItem(icon: Icon(Icons.add_circle), label: 'Create'),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'You'),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _explorePane(String q) {
+    // reuse your existing fetch-all future
+    return _feedList(_futureItineraries, q);
+  }
 
-          // Itinerary list
-          Expanded(
-            child: FutureBuilder<List<Itinerary>>(
-              future: _futureItineraries,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState != ConnectionState.done) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      'Error: ${snapshot.error}',
-                      style: GoogleFonts.poppins(color: Colors.red),
-                    ),
-                  );
-                }
+  Widget _followingPane(String q, String me) {
+    final future = Future.wait([
+      _futureItineraries,                         // List<Itinerary>
+      ProfileService.fetchFollowingIds(me),       // List<int>
+    ]).then<List<Itinerary>>((res) {
+      final all = res[0] as List<Itinerary>;
+      final followingIds = Set<int>.from(res[1] as List<int>);
+      print('Following IDs = $followingIds, total itins = ${all.length}');
+      return all.where((i) => followingIds.contains(i.creatorId)).toList();
+    });
 
-                final all = snapshot.data ?? const <Itinerary>[];
-                final filtered = q.isEmpty
-                    ? all
-                    : all.where((itin) {
-                        final inTitle =
-                            itin.title.toLowerCase().contains(q);
-                        final inTags = (itin.tags?.any(
-                              (t) => t.toLowerCase().contains(q),
-                            ) ??
-                            false);
-                        return inTitle || inTags;
-                      }).toList();
+    return _feedList(future, q);
+  }
 
-                if (filtered.isEmpty) {
-                  return Center(
-                    child:
-                        Text('No trips found', style: GoogleFonts.poppins()),
-                  );
-                }
+    Widget _feedList(Future<List<Itinerary>> future, String q) {
+    return FutureBuilder<List<Itinerary>>(
+      future: future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(
+            child: Text('Error: ${snapshot.error}', style: GoogleFonts.poppins(color: Colors.red)),
+          );
+        }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: filtered.length,
-                  itemBuilder: (ctx, i) {
-                    final itin = filtered[i];
+        final all = snapshot.data ?? const <Itinerary>[];
+        final filtered = q.isEmpty
+            ? all
+            : all.where((itin) {
+                final inTitle = itin.title.toLowerCase().contains(q);
+                final inTags = (itin.tags?.any((t) => t.toLowerCase().contains(q)) ?? false);
+                return inTitle || inTags;
+              }).toList();
 
-                    // first image block across days (fallback placeholder)
-                    final imgBlock = itin.days
-                        .expand((d) => d.blocks)
-                        .firstWhere(
-                          (b) => b.type == 'image',
-                          orElse: () => ItineraryBlock(
-                            id: 0,
-                            dayGroupId: 0,
-                            order: 0,
-                            type: 'image',
-                            content: 'https://via.placeholder.com/800x400',
-                          ),
-                        );
+        if (filtered.isEmpty) {
+          return Center(child: Text('No trips found', style: GoogleFonts.poppins()));
+        }
 
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(16),
-                        onTap: () => Navigator.pushNamed(
-                          context,
-                          '/detail',
-                          arguments: itin.id,
-                        ),
-                        child: Card(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          clipBehavior: Clip.hardEdge,
-                          elevation: 4,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              imageFromRef(imgBlock.content, height: 180, width: double.infinity, fit: BoxFit.cover),
-                              // Image.network(
-                              //   imgBlock.content,
-                              //   height: 180,
-                              //   width: double.infinity,
-                              //   fit: BoxFit.cover,
-                              //   errorBuilder: (_, __, ___) => Container(
-                              //     height: 180,
-                              //     color: Colors.grey.shade200,
-                              //     child: const Center(
-                              //       child: Icon(Icons.broken_image,
-                              //           size: 40, color: Colors.black26),
-                              //     ),
-                              //   ),
-                              // ),
-                              Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Text(
-                                  itin.title,
-                                  style: GoogleFonts.poppins(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          itemCount: filtered.length,
+          itemBuilder: (ctx, i) {
+            final itin = filtered[i];
+            final imgBlock = itin.days
+                .expand((d) => d.blocks)
+                .firstWhere(
+                  (b) => b.type == 'image',
+                  orElse: () => ItineraryBlock(
+                    id: 0, dayGroupId: 0, order: 0, type: 'image',
+                    content: 'https://via.placeholder.com/800x400',
+                  ),
+                );
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: () => Navigator.pushNamed(context, '/detail', arguments: itin.id),
+                child: Card(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  clipBehavior: Clip.hardEdge,
+                  elevation: 4,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      imageFromRef(imgBlock.content, height: 180, width: double.infinity, fit: BoxFit.cover),
+                      Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
+                          itin.title,
+                          style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 16),
                         ),
                       ),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-
-      // Bottom nav
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.white,
-        selectedItemColor: Theme.of(context).primaryColor,
-        unselectedItemColor: Colors.grey,
-        currentIndex: 0,
-        onTap: (i) {
-          if (i == 1) {
-            Navigator.pushNamed(context, '/create');
-          } else if (i == 2) {
-            Navigator.pushNamed(
-              context,
-              '/profile',
-              arguments: nav.ProfileArgs(me, me), // <-- use logged-in user
+                    ],
+                  ),
+                ),
+              ),
             );
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.add_circle), label: 'Create'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'You'),
-        ],
-      ),
+          },
+        );
+      },
     );
   }
 }

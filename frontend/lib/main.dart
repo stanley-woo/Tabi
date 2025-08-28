@@ -11,6 +11,7 @@ import 'screens/login_screen.dart';
 import 'screens/create_itinerary_screen.dart';
 import 'screens/map_picker_screen.dart';
 import 'navigation/profile_args.dart' as nav;
+import 'navigation/create_itinerary_args.dart';
 
 final RouteObserver<ModalRoute<void>> routeObserver =
     RouteObserver<ModalRoute<void>>();
@@ -39,11 +40,17 @@ class Tabi extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
       ),
       initialRoute: '/',
+      onGenerateRoute: (settings) {
+        if(settings.name == '/create') {
+          final args = settings.arguments as CreateItineraryArgs?;
+          return MaterialPageRoute(builder: (_) => CreateItineraryScreen(template: args?.template), settings: settings);
+        }
+        return null;
+      },
       routes: {
         '/': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
         '/home': (context) => const HomeScreen(),
-        '/create': (context) => const CreateItineraryScreen(),
         '/detail': (context) {
           final id = ModalRoute.of(context)!.settings.arguments as int;
           return DetailedItineraryScreen(id: id);

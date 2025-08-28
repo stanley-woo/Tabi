@@ -1,6 +1,7 @@
 // File: lib/screens/detailed_itinerary_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:frontend/navigation/create_itinerary_args.dart';
 import 'package:frontend/widgets/image_ref.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
@@ -118,6 +119,15 @@ class _DetailedItineraryScreenState extends State<DetailedItineraryScreen> {
                 icon: Icon(_saved ? Icons.bookmark : Icons.bookmark_outline),
                 color: _saved ? Theme.of(context).primaryColor : null,
               ),
+              IconButton(
+                tooltip: 'Fork',
+                icon: const Icon(Icons.fork_right),
+                onPressed: () {
+                  final it = itin;
+                  if(it == null) return;
+                  Navigator.pushNamed(context, '/create', arguments: CreateItineraryArgs(template: it));
+                },
+              )
             ],
           ),
           body: ListView(

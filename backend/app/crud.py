@@ -3,6 +3,7 @@ from datetime import date
 from sqlmodel import Session, select
 from slugify import slugify
 from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
 
 from .models import User, Itinerary, ItineraryBlock, DayGroup
 from .schemas import UserCreate, DayGroupCreate, ItineraryCreate
@@ -65,6 +66,16 @@ def generate_unique_slug(session: Session, title: str, creator_id: int) -> str:
         count += 1
     return slug
 
+
+def generate_unique_title(session: Session, title: str, creator_id: int) -> str:
+    base = title
+    name = base
+    count = 1
+    while session.exec(select(Itinerary).where(Itinerary.title == name, Itinerary.creator_id == creator_id)).first():
+        count += 1
+        name = f"{base} ({count})"
+    return name
+
 def fork_itinerary(session: Session, original_id: int, new_creator_id: int) -> Itinerary:
     """Helper functor to fork an itinerary."""
     original = session.get(Itinerary, original_id)
@@ -89,18 +100,54 @@ def fork_itinerary(session: Session, original_id: int, new_creator_id: int) -> I
 # Itinerary CRUD (with seeded Day 1)
 # ----------------------------------
 def create_itinerary(session: Session, data: ItineraryCreate) -> Itinerary:
-    """Create a new itinerary, generating a unique slug for the user, and automatically seed a default Day 1 group."""
-    slug = generate_unique_slug(session, data.title, data.creator_id)
+    """Create a new itinerary + seed Day 1 atomically."""
+    try:
+        with session.begin():  # single atomic txn
+            # do reads INSIDE the txn to avoid "txn already begun"
+            # (optional) early check for duplicate title to return 409 fast:
+            if session.exec(
+                select(Itinerary).where(
+                    Itinerary.title == data.title,
+                    Itinerary.creator_id == data.creator_id
+                )
+            ).first():
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="You already have an itinerary with this title."
+                )
 
-    itin = Itinerary(title=data.title, description=data.description, visibility=data.visibility, creator_id=data.creator_id, slug=slug, tags=data.tags or [])
+            slug = generate_unique_slug(session, data.title, data.creator_id)
 
-    session.add(itin)
-    session.commit()
-    session.refresh(itin)
+            itin = Itinerary(
+                title=data.title,
+                description=data.description,
+                visibility=data.visibility,
+                creator_id=data.creator_id,
+                slug=slug,
+                tags=data.tags or [],
+            )
+            session.add(itin)
+            session.flush()  # get itin.id
 
-    create_day_group(session, itin.id, DayGroupCreate(date=date.today(), title="Day 1", order=0))
+            # seed Day 1 without committing inside the helper
+            create_day_group(
+                session,
+                itin.id,
+                DayGroupCreate(date=date.today(), title="Day 1", order=1),
+                autocommit=False,
+            )
+        # committed by context manager if no exception
+        session.refresh(itin)
+        return itin
 
-    return itin
+    except IntegrityError as e:
+        # transaction already rolled back by the context manager
+        if "itinerary_title_creator_id_key" in str(getattr(e, "orig", e)):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="You already have an itinerary with this title."
+            )
+        raise
 
 def list_itineraries(session: Session) -> List[Itinerary]:
     """Return all itineraries."""
@@ -114,25 +161,21 @@ def get_day_groups(session: Session, itinerary_id: int) -> List[DayGroup]:
     stmt = select(DayGroup).where(DayGroup.itinerary_id == itinerary_id).order_by(DayGroup.order)
     return session.exec(stmt).all()
 
-def create_day_group(session: Session, itinerary_id: int, data: DayGroupCreate) -> DayGroup:
+def create_day_group(session: Session, itinerary_id: int, data: DayGroupCreate, *, autocommit: bool = True) -> DayGroup:
     """Create a new DayGroup, auto-assigning its `order` at the end."""
     if not session.get(Itinerary, itinerary_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Itinerary not found.")
     
     max_order = (
-    session.exec(
-        select(DayGroup.order)
-        .where(DayGroup.itinerary_id == itinerary_id)
-        .order_by(DayGroup.order.desc())
-    ).first()
-    or 0
-)
+    session.exec(select(DayGroup.order).where(DayGroup.itinerary_id == itinerary_id).order_by(DayGroup.order.desc())).first() or 0)
     payload = data.model_dump(exclude={"order"})
     day = DayGroup(itinerary_id=itinerary_id, order=max_order+1, **payload)
-
     session.add(day)
-    session.commit()
-    session.refresh(day)
+    if autocommit:
+        session.commit()
+        session.refresh(day)
+    else:
+        session.flush()
     return day
 
 def update_day_group(session: Session, day_id: int, data: DayGroupCreate) -> DayGroup:

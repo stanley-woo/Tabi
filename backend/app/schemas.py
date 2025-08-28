@@ -133,6 +133,7 @@ class ProfileStats(BaseModel):
     saved: int
 
 class ProfileOut(BaseModel):
+    id: int
     username: str
     display_name: Optional[str] = None
     avatar_url: Optional[str] = None

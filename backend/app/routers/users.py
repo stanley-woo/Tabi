@@ -78,6 +78,7 @@ def get_profile(username: str, session: Session = Depends(get_session)):
     places = 0
 
     return ProfileOut(
+        id=u.id,
         username=user.username,
         display_name=user.display_name,
         avatar_url=to_avatar_url(user.avatar_name),  # map name -> URL
@@ -219,6 +220,7 @@ def list_followers(username: str, session: Session = Depends(get_session)):
 
     return [
         ProfileOut(
+            id = u.id,
             username=u.username,
             display_name=u.display_name,
             avatar_url=to_avatar_url(u.avatar_name),
@@ -244,6 +246,7 @@ def list_following(username: str, session: Session = Depends(get_session)):
 
     return [
         ProfileOut(
+            id=u.id,
             username=u.username,
             display_name=u.display_name,
             avatar_url=to_avatar_url(u.avatar_name),

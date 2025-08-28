@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:frontend/models/itinerary.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 import 'package:apple_maps_flutter/apple_maps_flutter.dart' as amaps;
@@ -30,12 +31,13 @@ class DayGroupEditorModel {
 
   DayGroupEditorModel({
     required this.date,
-    this.blocks = const [],
-  });
+    List<ItineraryBlockEditorModel>? blocks,
+  }) : blocks = blocks ?? <ItineraryBlockEditorModel>[];
 }
 
 class CreateItineraryScreen extends StatefulWidget {
-  const CreateItineraryScreen({super.key});
+  final Itinerary? template;
+  const CreateItineraryScreen({super.key, this.template});
 
   @override
   State<CreateItineraryScreen> createState() =>
@@ -54,18 +56,73 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
   bool _isPublic = true;
   final List<String> _tags = [];
 
-  // For simplicity: this holds the blocks for *the currently selected day*
-  final List<ItineraryBlockEditorModel> _blocks = [];
-
   // Support multiple days UI but we only save blocks for the selected one today
   // List<DateTime> _dayDates = [DateTime.now()];
-  final List<DayGroupEditorModel> _days = [DayGroupEditorModel(date: DateTime.now(), blocks: [])];
+  late List<DayGroupEditorModel> _days;
   int _selectedDay = 0;
+
+  bool _blockHasContent(dynamic b) {
+    String type;
+    String content;
+
+    if (b is ItineraryBlockEditorModel) {
+      type = b.type.name;            // "text" | "image" | "map"
+      content = b.content.trim();
+    } else if (b is Map) {
+      type = (b['type'] as String? ?? '').toLowerCase().trim();
+      content = (b['content'] as String? ?? '').trim();
+    } else {
+      return false;
+    }
+
+    if (type == 'text') return content.isNotEmpty;
+    if (type == 'image' || type == 'map') return content.isNotEmpty;
+    return false;
+  }
+
+  bool _dayHasContent(dynamic day) {
+    final blocks = (day is DayGroupEditorModel) ? day.blocks : (day?['blocks'] as List? ?? const <dynamic>[]);
+    return blocks.any(_blockHasContent);
+  }
+
+  bool get _hasAnyContent => _days.any(_dayHasContent);
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _days = [];
+
+    final t = widget.template;
+    if(t != null) {
+      _seedFromTemplate(t);
+    } else {
+      _days = [DayGroupEditorModel(date: DateTime.now(), blocks: [])];
+    }
+  }
+
+  void _seedFromTemplate(Itinerary t) {
+    _titleController.text = '${t.title} (forked)';
+    _descriptionController.text = t.description;
+    _isPublic = false;
+    _tags
+      ..clear()
+      ..addAll(t.tags ?? const []);
+    
+    _days
+      ..clear()
+      ..addAll(t.days.map((d) {
+        final blocks = d.blocks.map((b) {
+          final type = b.type.toLowerCase();
+          final bt = type == 'text' ? BlockType.text : type == 'image' ? BlockType.image : BlockType.map;
+          return ItineraryBlockEditorModel(type: bt, content: b.content);
+        }).toList();
+
+        return DayGroupEditorModel(date: d.date, blocks: blocks);
+      }).toList());
+    
+    _selectedDay = 0;
+    setState(() {});
   }
 
   @override
@@ -203,6 +260,17 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
               ),
             ),
 
+            if(!_hasAnyContent)
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: 88,
+                child: Text(
+                  'Add a text, photo, or map to enable Create',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.poppins(color: Colors.black54),
+                ),
+              ),
             // Create Trip button
             Positioned(
               left: 16,
@@ -217,7 +285,7 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
                       borderRadius:
                           BorderRadius.circular(32)),
                 ),
-                onPressed: () {
+                onPressed: !_hasAnyContent ? null : () {
                   if (_formKey.currentState?.validate() ??
                       false) {
                     _saveTrip();
@@ -272,8 +340,7 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
                 IconButton(
                   icon: const Icon(Icons.delete,
                       color: Colors.redAccent),
-                  onPressed: () => setState(() =>
-                      _blocks.removeAt(idx)),
+                  onPressed: () => setState(() => _days[_selectedDay].blocks.removeAt(idx)),
                 ),
               ],
             ),
@@ -290,16 +357,34 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
                   ),
                 ),
                 maxLines: null,
+                onChanged: (_) => setState(() {}),
               ),
             ] else if (block.type == BlockType.image) ...[
-              if (block.content.isNotEmpty)
-                Image.file(
-                  File(block.content),
-                  height: 150,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                )
-              else
+              if (block.content.isNotEmpty) ...[
+                if(block.content.startsWith('http'))
+                  Image.network(
+                    block.content,
+                    height: 150,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (_, child, progress) => 
+                      progress == null ? child : Container(height: 150, alignment: Alignment.center, child: const CircularProgressIndicator()),
+                    errorBuilder: (_,_,_) => Container(height: 150, alignment: Alignment.center, child: const Text('Could not load image'))
+                  )
+                else if (File(block.content).existsSync())
+                  Image.file(
+                    File(block.content),
+                    height: 150,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  )
+                else
+                  Container(
+                    height: 150,
+                    decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8)),
+                    child: const Center(child: Text('No Photo')),
+                  ),
+              ] else
                 Container(
                   height: 150,
                   decoration: BoxDecoration(
@@ -729,72 +814,119 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
     );
   }
 
-  /// === SAVE TRIP TO BACKEND ===
   Future<void> _saveTrip() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
+    // Keep only days that actually have content
+    final nonEmptyDays = _days.where(_dayHasContent).toList();
+    if (nonEmptyDays.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Add at least one text, photo, or map :)')),
+        );
+      }
+      return;
+    }
+
     try {
-      // 1) Create the itinerary (auto‐seeds Day 1 on the server)
+      // 1) Create itinerary (make public after blocks are in)
       final itinId = await ItineraryService.createItinerary(
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
-        isPublic: _isPublic,
+        isPublic: true,
         tags: _tags,
-        creatorId: 1,
+        creatorId: 2, // swap to AuthStore.userId when wired
       );
-      // print('CREATE ITINERARY → id=$itinId');
-      // 2.) For each day in the local model, call the day-group API:
-      final List<int> createdDayIds = [];
-      for(var i = 0; i < _days.length; i++) {
-        final day = _days[i];
-        final created = await DayGroupService.createDayGroup(itineraryId: itinId, date: day.date, title: null, order: i+ 1);
-        // print('CREATE DAY $i → id=${created.id}, date=${day.date}');
-        createdDayIds.add(created.id);
+
+      // 2) Fetch detail to get the server-seeded Day 1
+      final detail = await ItineraryService.fetchDetail(itinId);
+      final serverDays = detail.days; // should contain Day 1
+
+      final List<int> dayIds = [];
+      if (serverDays.isEmpty) {
+        final created = await DayGroupService.createDayGroup(
+          itineraryId: itinId,
+          date: nonEmptyDays.first.date,
+          title: null,
+          order: 1
+        );
+        dayIds.add(created.id);
       }
 
-      // 3.) Now loop again to post each block under its newly created day:
-      for(var dayIndex = 0; dayIndex < _days.length; dayIndex++) {
-        final day = _days[dayIndex]; // From the locally saved model
-        // Example below to walkthrough the logic:
-        // createdDayIds = [ 17, 18, 19 ]
-        // _days         = [ Day 1 , Day 2 , Day 3 ]
-        final dayGroupId = createdDayIds[dayIndex]; // The DB's ID for that day -> _days[0] = Day 1 -> createdDayIDs[0] = 17
-        final blocks = day.blocks; // list of blocks for that day
+      // Reuse seeded Day 1 for our first local day
+      if (serverDays.isNotEmpty) {
+        final seeded = serverDays.first;
+        dayIds.add(seeded.id);
 
-        for (var i = 0; i < blocks.length; i++) {
-          var content = blocks[i].content;
+        // Update seeded Day 1 metadata to match the first local day
+        final firstLocal = nonEmptyDays.first;
+        try {
+          await DayGroupService.updateDayGroup(
+            dayId: seeded.id,
+            date: firstLocal.date,
+            title: null,
+          );
+        } catch (_) {/* optional */}
+      }
 
-          if(blocks[i].type == BlockType.image && File(content).existsSync()) {
+      // Create remaining days as needed
+      for (var i = 1; i < nonEmptyDays.length; i++) {
+        final d = nonEmptyDays[i];
+        final created = await DayGroupService.createDayGroup(
+          itineraryId: itinId,
+          date: d.date,
+          title: null,
+          order: i + 1,
+        );
+        dayIds.add(created.id);
+      }
+
+      // 3) Post blocks for each non-empty day
+      for (var di = 0; di < nonEmptyDays.length; di++) {
+        final day = nonEmptyDays[di];
+        final dayGroupId = dayIds[di];
+        final blocks = day.blocks.where(_blockHasContent).toList();
+
+        for (var bi = 0; bi < blocks.length; bi++) {
+          var content = blocks[bi].content;
+
+          // If it’s a local photo path, upload first
+          if (blocks[bi].type == BlockType.image &&
+              content.isNotEmpty &&
+              File(content).existsSync()) {
             content = await FileService.uploadImage(File(content));
           }
 
-          // Finally send each block to:
-          // POST /itineraries/{itinId}/days/{dayGroupId}/blocks
           await ItineraryService.createBlock(
             itineraryId: itinId,
-            dayGroupId: dayGroupId, // Used here on line 764
-            order: i + 1,
-            type: blocks[i].type == BlockType.text
-              ? 'text'
-              : blocks[i].type == BlockType.image
-                ? 'image'
-                : 'map',
-            content: content
+            dayGroupId: dayGroupId,
+            order: bi + 1,
+            type: blocks[bi].type == BlockType.text
+                ? 'text'
+                : blocks[bi].type == BlockType.image
+                    ? 'image'
+                    : 'map',
+            content: content,
           );
-        //   print(
-        //   'CREATE BLOCK → dayGroupId=$dayGroupId, '
-        //   'order=${i+1}, type=${blocks[i].type}, '
-        //   'content=$content'
-        // );
         }
       }
 
-      // 4,) Navigate to detail (or fetch detail and then navigate)
-      // ignore: use_build_context_synchronously
-      Navigator.pushReplacementNamed(context, '/detail', arguments: itinId);
+      // 4) Publish if toggle is on (optional endpoint)
+      // if (_isPublic) {
+      //   try {
+      //     await ItineraryService.setVisibility(itinId, 'public');
+      //   } catch (_) {/* ok if you don't have this */}
+      // }
+
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/detail', arguments: itinId);
+      }
     } catch (e) {
-      // ignore: use_build_context_synchronously
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Save failed: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Save failed: $e')),
+        );
+      }
     }
   }
 }
