@@ -1,6 +1,6 @@
 from datetime import date
 from typing import List, Optional, Literal, ForwardRef
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 
 # Forward references for nested models
 ItineraryBlockRead = ForwardRef("ItineraryBlockRead")
@@ -13,7 +13,7 @@ class UserCreate(BaseModel):
     """Schema for creating a new user."""
     username: str
     avatar_name: Optional[str] = None
-    header_irl: Optional[str] = None
+    header_url: Optional[str] = None
     bio: Optional[str] = None
 
 
@@ -152,6 +152,31 @@ class BookmarkIn(BaseModel):
 
 class FollowIn(BaseModel):
     target_username: str
+
+# -----------------------------
+# 6. Auth Schemas (non-breaking additions)
+# -----------------------------
+class RegisterRequest(BaseModel):
+    """Input for auth/register. We separate auth DTOs from existing USER schemas so nothing breaks"""
+    email: EmailStr
+    username: str
+    password: str
+
+class LoginRequest(BaseModel):
+    """Input for /auth/login"""
+    email: EmailStr
+    password: str
+
+class RefreshRequest(BaseModel):
+    """Input for /auth/refresh"""
+    refresh_token: str
+
+class TokenPair(BaseModel):
+    """Output for /auth/login and /auth/refresh. Includes both tokens to let the client store/rotate securely."""
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+
 
 # finalize forward refs for all three interdependent schemas
 ItineraryRead.model_rebuild()

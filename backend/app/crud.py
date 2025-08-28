@@ -1,12 +1,15 @@
-from typing import List
-from datetime import date
+from typing import List, Optional
+from datetime import date, datetime, timezone, timedelta
 from sqlmodel import Session, select
 from slugify import slugify
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 
-from .models import User, Itinerary, ItineraryBlock, DayGroup
+import uuid
+
+from .models import User, Itinerary, ItineraryBlock, DayGroup, RefreshToken
 from .schemas import UserCreate, DayGroupCreate, ItineraryCreate
+from app.security import (hash_password, verify_password, create_access_token, REFRESH_TOKEN_EXPIRE_DAYS)
 
 # ----------------------------------
 # User CRUD

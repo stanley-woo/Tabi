@@ -12,6 +12,9 @@ def utcnow() -> dt.datetime:
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     username: str = Field(sa_column=Column(String, unique=True, index=True))
+    email: Optional[str] = Field(default=None, sa_column=Column(String, unique=True, index=True))
+    hashed_password: Optional[str] = None
+    created_at: Optional[dt.datetime] = Field(default=None)
     display_name: str | None = None
     avatar_name: str | None = None
     header_url: str | None = None
@@ -82,3 +85,11 @@ class Follow(SQLModel, table=True):
     follower_id: int = Field(foreign_key="user.id", index=True)
     following_id: int = Field(foreign_key="user.id", index=True)
     created_at: dt.datetime = Field(default_factory=utcnow)
+
+class RefreshToken(SQLModel, table=True):
+    __tablename__ = "refresh_token"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    token: str = Field(index=True, unique=True)
+    expires_at: dt.datetime
+    revoked: bool = Field(default=False)
