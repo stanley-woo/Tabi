@@ -11,3 +11,4 @@ flake8
 alembic
 passlib[bcrypt]
 python-jose[cryptography]
+email-validator

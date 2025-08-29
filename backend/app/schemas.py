@@ -1,6 +1,6 @@
 from datetime import date
 from typing import List, Optional, Literal, ForwardRef
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, ConfigDict
 
 # Forward references for nested models
 ItineraryBlockRead = ForwardRef("ItineraryBlockRead")
@@ -25,9 +25,7 @@ class UserRead(BaseModel):
     avatar_name: Optional[str] = None
     header_url: Optional[str] = None
     bio: Optional[str] = None
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # -----------------------------
@@ -93,9 +91,7 @@ class ItineraryBlockRead(BaseModel):
     order: int
     type: str
     content: str
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # -----------------------------
@@ -118,9 +114,7 @@ class DayGroupRead(DayGroupBase):
     id: int
     itinerary_id: int
     blocks: List[ItineraryBlockRead] = []
-
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # -----------------------------

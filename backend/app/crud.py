@@ -215,3 +215,83 @@ def reorder_day_groups(session: Session, itinerary_id: int, ordered_ids: List[in
         session.add(dg)
     session.commit()
     return get_day_groups(session, itinerary_id)
+
+
+# ==============================
+# Auth CRUD (Users & Refresh Tokens)
+# ==============================
+
+def get_user_by_email(session: Session, email: str) -> Optional[User]:
+    """Fetch user by unique (non-null) email"""
+    return session.exec(select(User).where(User.email == email)).first()
+
+def get_user_by_username(session: Session, username: str) -> Optional[User]:
+    """Fetch a user by unique username"""
+    return session.exec(select(User).where(User.username == username)).first()
+
+def create_user_with_password(session: Session, *, email: str, username: str, password: str) -> User:
+    """Create a user with hashed password (auth flows)"""
+    user = User(username=username, email=email, hashed_password=hash_password(password), created_at=datetime.now(timezone.utc))
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
+
+def verify_user_credentials(session: Session, *, email: str, password: str) -> Optional[User]:
+    """Return user if email and password is valid"""
+    user = get_user_by_email(session, email)
+    if not user or not user.hashed_password:
+        return None
+    if not verify_password(password, user.hashed_password):
+        return None
+    return user
+
+def create_refresh_token(session: Session, user_id: int) -> RefreshToken:
+    """Persist a new refresh token now"""
+    rt = RefreshToken(user_id=user_id, token=uuid.uuid4().hex, expires_at=datetime.now(timezone.utc) + timedelta(REFRESH_TOKEN_EXPIRE_DAYS), revoked=False)
+    session.add(rt)
+    session.commit()
+    session.refresh(rt)
+    return rt
+
+def revoke_refresh_token(session: Session, token_str: str) -> None:
+    """Mark a refresh token as revoked"""
+    rt = session.exec(select(RefreshToken).where(RefreshToken.token == token_str)).first()
+    if rt and not rt.revoked:
+        rt.revoked = True
+        session.add(rt)
+        session.commit()
+
+def rotate_refresh_token(session: Session, token_str: str) -> tuple[Optional[User], Optional[RefreshToken]]:
+    """Revoke an old refresh token and return a new one + user"""
+    rt = session.exec(select(RefreshToken).where(RefreshToken.token == token_str)).first()
+    if not rt:
+        return None, None
+    
+    expires_at = rt.expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    
+    now = datetime.now(timezone.utc)
+    if rt.revoked or expires_at <= now:
+        return None, None
+    
+    user = session.get(User, rt.user_id)
+    if not user:
+        return None, None
+    
+    rt.revoked = True
+    new_rt = RefreshToken(user_id=user.id, token=uuid.uuid4().hex, expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS), revoked=False)
+    session.add(rt)
+    session.add(new_rt)
+    session.commit()
+    session.refresh(new_rt)
+    return user, new_rt
+
+def issue_token_pair_for_user(session: Session, user: User) -> tuple[str, RefreshToken]:
+    """Issue JWT access + persisted refresh token"""
+    if not user.email:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User has no email; cannot issue JWT.")
+    access = create_access_token(subject=user.email)
+    refresh = create_refresh_token(session=session, user_id=user.id)
+    return access, refresh

@@ -52,7 +52,7 @@ class Itinerary(SQLModel, table=True):
     creator_id: int = Field(foreign_key="user.id")
     creator: Optional[User] = Relationship(back_populates="itineraries")
     parent_id: Optional[int] = Field(default=None, foreign_key="itinerary.id")
-    tags: List[str] = Field(default_factory=list,sa_column=Column(JSON, default_factory=list))
+    tags: List[str] = Field(default_factory=list, sa_column=Column(JSON))
     days: List[DayGroup] = Relationship(back_populates="itinerary", sa_relationship_kwargs={"order_by": DayGroup.order, "cascade": "all, delete-orphan"})
 
 
