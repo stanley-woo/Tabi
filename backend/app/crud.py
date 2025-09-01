@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 import uuid
 
 from .models import User, Itinerary, ItineraryBlock, DayGroup, RefreshToken
-from .schemas import UserCreate, DayGroupCreate, ItineraryCreate
+from .schemas import UserCreate, DayGroupCreate, ItineraryCreate, ItineraryUpdate
 from app.security import (hash_password, verify_password, create_access_token, REFRESH_TOKEN_EXPIRE_DAYS)
 
 # ----------------------------------
@@ -56,6 +56,15 @@ def get_blocks(session: Session, day_group_id: int) -> List[ItineraryBlock]:
     ).order_by(ItineraryBlock.order)
     return session.exec(stmt).all()
 
+def delete_block(session: Session, block: ItineraryBlock) -> None:
+    """
+    Delete an itinerary block.
+    Assumes caller already performed authorization (e.g., ensure_block_owner)
+    and ensured the block belongs to the intended path.
+    """
+    session.delete(block)        # remove the ORM instance
+    session.commit()             # persist the delete
+
 # ----------------------------------
 # Itinerary Helpers
 # ----------------------------------
@@ -80,81 +89,178 @@ def generate_unique_title(session: Session, title: str, creator_id: int) -> str:
     return name
 
 def fork_itinerary(session: Session, original_id: int, new_creator_id: int) -> Itinerary:
-    """Helper functor to fork an itinerary."""
+    """Clone itinerary with all day groups and blocks (deep copy)."""
     original = session.get(Itinerary, original_id)
     if not original:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="Original itinerary not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Original itinerary not found")
 
+    # Make a unique title for the new owner
     title = f"{original.title} (forked)"
     suffix = 1
     while session.exec(
-        select(Itinerary).where(Itinerary.title == title, Itinerary.creator_id == new_creator_id)).first():
+        select(Itinerary).where(Itinerary.title == title, Itinerary.creator_id == new_creator_id)
+    ).first():
         suffix += 1
         title = f"{original.title} (forked {suffix})"
+
     slug = generate_unique_slug(session, title, new_creator_id)
 
-    forked = Itinerary(title=title, description=original.description, visibility=original.visibility, creator_id=new_creator_id, slug=slug, tags=list(original.tags), parent_id=original.id)
+    # Create the forked itinerary
+    forked = Itinerary(
+        title=title,
+        description=original.description,
+        visibility=original.visibility,
+        creator_id=new_creator_id,
+        slug=slug,
+        tags=list(original.tags),
+        parent_id=original.id,
+    )
     session.add(forked)
+    session.flush()  # get forked.id
+
+    # Copy days in order
+    orig_days = session.exec(
+        select(DayGroup).where(DayGroup.itinerary_id == original.id).order_by(DayGroup.order)
+    ).all()
+
+    for d in orig_days:
+        new_day = DayGroup(
+            itinerary_id=forked.id,
+            date=d.date,
+            order=d.order,
+            title=d.title,
+        )
+        session.add(new_day)
+        session.flush()  # get new_day.id
+
+        # Copy blocks for this day in order
+        blocks = session.exec(
+            select(ItineraryBlock).where(ItineraryBlock.day_group_id == d.id).order_by(ItineraryBlock.order)
+        ).all()
+        for b in blocks:
+            session.add(
+                ItineraryBlock(
+                    day_group_id=new_day.id,
+                    order=b.order,
+                    type=b.type,
+                    content=b.content,
+                )
+            )
+
     session.commit()
     session.refresh(forked)
     return forked
 
 # ----------------------------------
-# Itinerary CRUD (with seeded Day 1)
+# Itinerary CRUD
 # ----------------------------------
 def create_itinerary(session: Session, data: ItineraryCreate) -> Itinerary:
-    """Create a new itinerary + seed Day 1 atomically."""
+    """Create a new itinerary + seed Day 1; single commit at the end."""
     try:
-        with session.begin():  # single atomic txn
-            # do reads INSIDE the txn to avoid "txn already begun"
-            # (optional) early check for duplicate title to return 409 fast:
-            if session.exec(
-                select(Itinerary).where(
-                    Itinerary.title == data.title,
-                    Itinerary.creator_id == data.creator_id
-                )
-            ).first():
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="You already have an itinerary with this title."
-                )
-
-            slug = generate_unique_slug(session, data.title, data.creator_id)
-
-            itin = Itinerary(
-                title=data.title,
-                description=data.description,
-                visibility=data.visibility,
-                creator_id=data.creator_id,
-                slug=slug,
-                tags=data.tags or [],
+        # Early duplicate check (same creator + title)
+        dup = session.exec(
+            select(Itinerary).where(
+                Itinerary.title == data.title,
+                Itinerary.creator_id == data.creator_id,
             )
-            session.add(itin)
-            session.flush()  # get itin.id
-
-            # seed Day 1 without committing inside the helper
-            create_day_group(
-                session,
-                itin.id,
-                DayGroupCreate(date=date.today(), title="Day 1", order=1),
-                autocommit=False,
+        ).first()
+        if dup:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="You already have an itinerary with this title.",
             )
-        # committed by context manager if no exception
+
+        slug = generate_unique_slug(session, data.title, data.creator_id)
+
+        itin = Itinerary(
+            title=data.title,
+            description=data.description,
+            visibility=data.visibility,
+            creator_id=data.creator_id,
+            slug=slug,
+            tags=data.tags or [],
+        )
+        session.add(itin)
+        session.flush()  # get itin.id
+
+        # seed Day 1 but do not commit yet
+        create_day_group(
+            session,
+            itin.id,
+            DayGroupCreate(date=date.today(), title="Day 1", order=1),
+            autocommit=False,
+        )
+
+        session.commit()
         session.refresh(itin)
         return itin
 
     except IntegrityError as e:
-        # transaction already rolled back by the context manager
+        session.rollback()
         if "itinerary_title_creator_id_key" in str(getattr(e, "orig", e)):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="You already have an itinerary with this title."
+                detail="You already have an itinerary with this title.",
             )
         raise
 
 def list_itineraries(session: Session) -> List[Itinerary]:
     """Return all itineraries."""
     return session.exec(select(Itinerary)).all()
+
+def get_itinerary(session: Session, itinerary_id: int) -> Itinerary:
+    """Fetch an itinerary by ID or 404."""
+    itin = session.get(Itinerary, itinerary_id)
+    if not itin:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Itinerary not found")
+    return itin
+
+def update_itinerary(session: Session, itinerary_id: int, data: ItineraryUpdate) -> Itinerary:
+    """
+    Update itinerary metadata.
+    - Protects id/creator_id/slug from changes.
+    - Returns 409 if the (creator_id, title) would collide with an existing itinerary.
+    """
+    itin = get_itinerary(session, itinerary_id)
+
+    payload = data.model_dump(exclude_unset=True)
+    # protect immutable fields
+    payload.pop("id", None)
+    payload.pop("creator_id", None)
+    payload.pop("slug", None)
+
+    # Optional: enforce unique (creator_id, title) when title changes
+    new_title = payload.get("title")
+    if new_title and new_title != itin.title:
+        exists = session.exec(
+            select(Itinerary).where(
+                Itinerary.creator_id == itin.creator_id,
+                Itinerary.title == new_title,
+                Itinerary.id != itin.id,
+            )
+        ).first()
+        if exists:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="You already have an itinerary with this title."
+            )
+
+    for k, v in payload.items():
+        setattr(itin, k, v)
+
+    session.add(itin)
+    session.commit()
+    session.refresh(itin)
+    return itin
+
+def delete_itinerary(session: Session, itinerary_id: int) -> None:
+    """
+    Delete an itinerary by ID.
+    Assumes your FK/relationship configuration allows deleting or cascades appropriately.
+    """
+    itin = get_itinerary(session, itinerary_id)
+    session.delete(itin)
+    session.commit()
 
 # ----------------------------------
 # DayGroup CRUD

@@ -12,6 +12,7 @@ from ..schemas import (
     ProfileOut, ProfileStats, BookmarkIn, FollowIn,
     ItineraryRead, UserCreate, UserRead, ProfileUpdate
 )
+from ..deps import get_current_user, is_admin
 
 router = APIRouter(prefix="/users", tags=["users"])
 

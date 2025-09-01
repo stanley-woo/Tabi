@@ -73,6 +73,13 @@ class ItineraryRead(ItineraryBase):
     class Config:
         orm_mode = True
 
+class ItineraryCreateIn(BaseModel):
+    title: str
+    description: Optional[str] = None
+    visibility: Literal["public", "private"] = "public"
+    tags: List[str] = []
+    parent_id: Optional[int] = None
+
 
 # -----------------------------
 # 3. ItineraryBlock Schemas

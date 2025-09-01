@@ -31,6 +31,8 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     environment:
       - AVATAR_CDN_BASE=http://localhost:8000/static
+      - ADMIN_EMAILS=demo@tabi.app,stableywoo@gmail.com
+      - ADMIN_BYPASS_ENABLED=true
 
 volumes:
   pgdata:

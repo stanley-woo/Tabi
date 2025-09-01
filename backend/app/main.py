@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 
 from .database import init_db
-from .routers import users, itineraries, blocks, files, day_groups, auth
+from .routers import users, itineraries, blocks, files, day_groups, auth, debug
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -40,3 +40,4 @@ app.include_router(blocks.router)
 app.include_router(files.router)
 app.include_router(day_groups.router)
 app.include_router(auth.router)
+app.include_router(debug.router)
