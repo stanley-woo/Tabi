@@ -21,11 +21,18 @@ class UserRead(BaseModel):
     """Schema for returning user info."""
     id: int
     username: str
+    email: str | None = None
     display_name: Optional[str] = None
     avatar_name: Optional[str] = None
     header_url: Optional[str] = None
     bio: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
+
+class MeOut(BaseModel):
+    id: int
+    username: str | None = None
+    email: str | None = None
+    is_admin: bool
 
 
 # -----------------------------

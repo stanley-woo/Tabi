@@ -3,9 +3,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
 
 from app.database import get_session
-from app.deps import get_current_user
+from app.deps import get_current_user, is_admin
 from app.models import User
-from app.schemas import RegisterRequest, LoginRequest, RefreshRequest, TokenPair, UserRead
+from app.schemas import RegisterRequest, LoginRequest, RefreshRequest, TokenPair, UserRead, MeOut
 from app import crud
 from app.security import create_access_token
 
@@ -54,11 +54,11 @@ def logout(data: RefreshRequest, session: Session = Depends(get_session)):
     crud.revoke_refresh_token(session, data.refresh_token)
     return
 
-@router.get("/me", response_model=UserRead)
+@router.get("/me", response_model=MeOut)
 def me(current_user: User = Depends(get_current_user)):
     """
     Return the current authenticated user.
     - Requires Authorization: Bearer <access JWT>
     - get_current_user() decodes JWT + loads the user from DB
     """
-    return current_user
+    return MeOut(id=current_user.id,username=current_user.username,email=current_user.email,is_admin=is_admin(current_user))

@@ -34,12 +34,15 @@ def get_user_route(*, user_id: int, session: Session = Depends(get_session)):
 
 # ---------- PROFILE (HEADER) ----------
 @router.put("/{username}/profile", response_model=ProfileOut)
-def update_profile(username: str, payload: ProfileUpdate, session: Session = Depends(get_session)):
+def update_profile(username: str, payload: ProfileUpdate, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
     """Update display_name, avatar_name, header_url, bio (nullable fields)."""
     user = session.exec(select(User).where(User.username == username)).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
 
+    if user.id != current_user.id and not is_admin(current_user):
+        raise HTTPException(status_code=404, detail="Not Found")
+    
     # Apply only provided fields to avoid clobbering with nulls
     for k, v in payload.model_dump(exclude_unset=True).items():
         setattr(user, k, v)
@@ -117,12 +120,14 @@ def list_saved_itins(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
 ):
     """Itineraries this user saved (Saved tab)."""
     user = session.exec(select(User).where(User.username == username)).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
-
+    if user.id != current_user.id and not is_admin(current_user):
+        raise HTTPException(status_code=404, detail="Not Found")
     q = (
         select(Itinerary)
         .join(Bookmark, Bookmark.itinerary_id == Itinerary.id)
@@ -134,13 +139,15 @@ def list_saved_itins(
 
 # ---------- BOOKMARK (SAVE/UNSAVE) ----------
 @router.post("/{username}/bookmarks", status_code=status.HTTP_204_NO_CONTENT)
-def add_bookmark(username: str, payload: BookmarkIn, session: Session = Depends(get_session)):
+def add_bookmark(username: str, payload: BookmarkIn, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
     """
     Save a trip. Idempotent: duplicate inserts are ignored via UniqueConstraint.
     """
     user = session.exec(select(User).where(User.username == username)).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
+    if user.id != current_user.id and not is_admin(current_user):
+        raise HTTPException(status_code=404, detail="Not Found")
 
     session.add(Bookmark(user_id=user.id, itinerary_id=payload.itinerary_id))
     try:
@@ -150,17 +157,14 @@ def add_bookmark(username: str, payload: BookmarkIn, session: Session = Depends(
     return
 
 @router.delete("/{username}/bookmarks/{itinerary_id}", status_code=status.HTTP_204_NO_CONTENT)
-def remove_bookmark(username: str, itinerary_id: int, session: Session = Depends(get_session)):
+def remove_bookmark(username: str, itinerary_id: int, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
     """Unsave a trip. Deleting a missing row is treated as success (idempotent)."""
     user = session.exec(select(User).where(User.username == username)).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
-
-    row = session.exec(
-        select(Bookmark).where(
-            Bookmark.user_id == user.id, Bookmark.itinerary_id == itinerary_id
-        )
-    ).first()
+    if user.id != current_user.id and not is_admin(current_user):
+        raise HTTPException(status_code=404, detail="Not Found")
+    row = session.exec(select(Bookmark).where(Bookmark.user_id == user.id, Bookmark.itinerary_id == itinerary_id)).first()
     if row:
         session.delete(row)
         session.commit()
@@ -168,7 +172,7 @@ def remove_bookmark(username: str, itinerary_id: int, session: Session = Depends
 
 # ---------- FOLLOW / UNFOLLOW ----------
 @router.post("/{username}/follow", status_code=status.HTTP_204_NO_CONTENT)
-def follow_user(username: str, payload: FollowIn, session: Session = Depends(get_session)):
+def follow_user(username: str, payload: FollowIn, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
     """
     Current user follows target user. Idempotent via UniqueConstraint.
     """
@@ -176,6 +180,8 @@ def follow_user(username: str, payload: FollowIn, session: Session = Depends(get
     target = session.exec(select(User).where(User.username == payload.target_username)).first()
     if not follower or not target:
         raise HTTPException(status_code=404, detail="User(s) not found.")
+    if follower.id != current_user.id and not is_admin(current_user):
+        raise HTTPException(status_code=404, detail="Not Found")
     if follower.id == target.id:
         raise HTTPException(status_code=400, detail="Cannot follow yourself.")
 
@@ -187,19 +193,16 @@ def follow_user(username: str, payload: FollowIn, session: Session = Depends(get
     return
 
 @router.delete("/{username}/follow/{target_username}", status_code=status.HTTP_204_NO_CONTENT)
-def unfollow_user(username: str, target_username: str, session: Session = Depends(get_session)):
+def unfollow_user(username: str, target_username: str, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
     """Unfollow. Deleting a missing row is treated as success (idempotent)."""
     follower = session.exec(select(User).where(User.username == username)).first()
     target = session.exec(select(User).where(User.username == target_username)).first()
     if not follower or not target:
         raise HTTPException(status_code=404, detail="User(s) not found.")
+    if follower.id != current_user.id and not is_admin(current_user):
+        raise HTTPException(status_code=404, detail="Not Found")
 
-    row = session.exec(
-        select(Follow).where(
-            Follow.follower_id == follower.id,
-            Follow.following_id == target.id,
-        )
-    ).first()
+    row = session.exec(select(Follow).where(Follow.follower_id == follower.id, Follow.following_id == target.id)).first()
     if row:
         session.delete(row)
         session.commit()
