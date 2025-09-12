@@ -16,11 +16,11 @@ import 'navigation/create_itinerary_args.dart';
 final RouteObserver<ModalRoute<void>> routeObserver =
     RouteObserver<ModalRoute<void>>();
 
+
 void main() {
   runApp(
-    // CHANGED: provide AuthStore and log in as Sarah by default
     ChangeNotifierProvider(
-      create: (_) => AuthStore()..loginAs('pikachu'),
+      create: (_) => AuthStore()..boot(),
       child: const Tabi(),
     ),
   );

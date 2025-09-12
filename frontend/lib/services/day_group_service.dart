@@ -1,16 +1,13 @@
 // lib/services/day_group_service.dart
 import 'dart:convert';
-import 'package:http/http.dart' as http;
-
 import 'api.dart';
 import '../models/day_group.dart';
 
 class DayGroupService {
+  static final _api = ApiClient.instance;
   /// Fetch all day-groups for a given itinerary.
   static Future<List<DayGroup>> fetchDayGroups(int itineraryId) async {
-    final uri = Uri.parse('$baseUrl/itineraries/$itineraryId/days');
-    final resp = await http.get(uri);
-    final body = jsonOrThrow(resp) as List<dynamic>;
+    final body = await _api.get('/itineraries/$itineraryId/days') as List<dynamic>;
     return body.map((e) => DayGroup.fromJson(e)).toList();
   }
 
@@ -19,39 +16,33 @@ class DayGroupService {
     required int itineraryId,
     required DateTime date,
     String? title,
-    required int order, // <-- add this
+    required int order
   }) async {
-    final uri = Uri.parse('$baseUrl/itineraries/$itineraryId/days');
     final payload = {
       'date': date.toIso8601String().substring(0, 10),
-      'order': order, // <-- include this
+      'order': order,
       if (title != null) 'title': title,
     };
-    final resp = await http.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(payload),
-    );
-    final body = jsonOrThrow(resp) as Map<String, dynamic>;
+    final body = await _api.post(
+      '/itineraries/$itineraryId/days',
+      body: payload,
+    ) as Map<String, dynamic>;
     return DayGroup.fromJson(body);
   }
 
 
   static Future<DayGroup> updateDayGroup({
+    required int itineraryId,
     required int dayId,
     required DateTime date,
     String? title,
   }) async {
-    final uri = Uri.parse('$baseUrl/days/$dayId'); // <-- fix path
-    final resp = await http.put(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'date': date.toIso8601String().substring(0, 10),
-        if (title != null) 'title': title,
-      }),
-    );
-    final body = jsonOrThrow(resp) as Map<String, dynamic>;
+    final payload = { 
+      'date': date.toIso8601String().substring(0, 10),
+      if (title != null) 'title': title
+    };
+
+    final body = await _api.patch('/itineraries/$itineraryId/days/$dayId', body: payload) as Map<String, dynamic>;
     return DayGroup.fromJson(body);
   }
 
@@ -61,9 +52,7 @@ class DayGroupService {
     required int itineraryId,
     required int dayGroupId,
   }) async {
-    final uri = Uri.parse('$baseUrl/itineraries/$itineraryId/days/$dayGroupId');
-    final resp = await http.delete(uri);
-    jsonOrThrow(resp); // expects 204; helper will throw if not 2xx
+    await _api.delete_('/itineraries/$itineraryId/days/$dayGroupId');
   }
 
   /// Reorder day-groups by new list of IDs.
@@ -71,13 +60,10 @@ class DayGroupService {
     required int itineraryId,
     required List<int> orderedIds,
   }) async {
-    final uri = Uri.parse('$baseUrl/itineraries/$itineraryId/days/reorder');
-    final resp = await http.patch(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(orderedIds),
-    );
-    final body = jsonOrThrow(resp) as List<dynamic>;
+    final body = await _api.patch(
+      '/itineraries/$itineraryId/days/reorder',
+      body: orderedIds,
+    ) as List<dynamic>;
     return body.map((e) => DayGroup.fromJson(e)).toList();
   }
 }

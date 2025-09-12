@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
+import 'package:frontend/state/auth_store.dart';
+import 'package:provider/provider.dart';
 import 'dart:io' show Platform;
 
 
@@ -36,24 +37,19 @@ class _LoginScreenState extends State<LoginScreen> {
     final isValid = _formKey.currentState?.validate() ?? false;
     if(!isValid) return;
 
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    setState(() {_loading = true; _error = null;});
 
-    final ok = await AuthService.login(
-      _emailCtrl.text.trim(),
-      _passCtrl.text.trim(),
-    );
-    setState(() {
-      _loading = false;
-    });
-
-    if(ok) {
-      // ignore: use_build_context_synchronously
+    try {
+      await context.read<AuthStore>().loginWithCredentials(_emailCtrl.text.trim(), _passCtrl.text.trim());
+      if(!mounted) return;
       Navigator.pushReplacementNamed(context, '/home');
-    } else {
-      setState(() => _error = 'Invalid Credentials.');}
+    } catch (e) {
+      setState(() => _error = 'Invalid credentials');
+    } finally {
+      if(mounted) {
+        setState(() => _loading = false);
+      }
+    }
   }
 
   // Future<void> _submit() async {
@@ -232,14 +228,26 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   Center(
                     child: TextButton(
-                      onPressed: _loading ? null : () async {
-                        // Autofill demo creds and attempt login
-                        setState(() {
-                          _emailCtrl.text = 'demo@tabi.app';
-                          _passCtrl.text = 'password';
-                        });
-                        await _onLoginPressed();
-                      },
+                        onPressed: _loading ? null : () async {
+                          setState(() => _loading = true);
+                          try {
+                            await context
+                                .read<AuthStore>()
+                                .loginWithCredentials('demo@tabi.app', 'password');
+                            if (!mounted) return;
+                            // (Optional) view as a specific profile while staying admin:
+                            await context.read<AuthStore>().devQuickSwitchProfile('pikachu');
+
+                            Navigator.pushReplacementNamed(context, '/home');
+                          } catch (e) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Login failed: $e')),
+                            );
+                          } finally {
+                            if (mounted) setState(() => _loading = false);
+                          }
+                        },
                       child: const Text('Use demo account'),
                     ),
                   ),
@@ -329,41 +337,3 @@ class _GoogleIcon extends StatelessWidget {
     // Swap with a proper Google logo when you add branding.
   }
 }
-
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(title: const Text('Login to Tabi'),),
-//       body: Padding(
-//         padding: const EdgeInsets.all(16),
-//         child: Column(
-//           mainAxisAlignment: MainAxisAlignment.center,
-//           children: [
-//             TextField(
-//               controller: _emailCtrl,
-//               decoration: const InputDecoration(labelText: 'Email'),
-//             ),
-//             const SizedBox(height: 12),
-//             TextField(
-//               controller: _passCtrl,
-//               decoration: const InputDecoration(labelText: 'Password'),
-//               obscureText: true,
-//             ),
-//             if(_error != null) ...[
-//               const SizedBox(height: 12),
-//               Text(_error!, style: const TextStyle(color: Colors.red)),
-//             ],
-//             const SizedBox(height: 24),
-//             ElevatedButton(
-//               onPressed: _loading ? null : _submit, 
-//               child: _loading
-//                 ? const CircularProgressIndicator(color: Colors.white)
-//                 : const Text('Login'),
-//                 ),
-//           ],
-//         ),
-//         ),
-//     );
-//   }
-// }

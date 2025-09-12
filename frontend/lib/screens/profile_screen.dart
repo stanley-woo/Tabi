@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:frontend/widgets/image_ref.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -382,9 +383,9 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
         ),
       ),
+      floatingActionButton: kDebugMode ? const _DevImpersonateFab() : null,
     );
   }
-
 }
 
 /// Tiny stat pill used in the header.
@@ -502,6 +503,91 @@ class _ItinCard extends StatelessWidget {
               trailing: trailing,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DevImpersonateFab extends StatelessWidget {
+  const _DevImpersonateFab();
+
+  @override
+  Widget build(BuildContext context) {
+    return FloatingActionButton.extended(
+      icon: const Icon(Icons.switch_account),
+      label: const Text('Switch user'),
+      onPressed: () => showModalBottomSheet(
+        context: context,
+        showDragHandle: true,
+        isScrollControlled: true,
+        builder: (_) => const _DevImpersonateSheet(),
+      ),
+    );
+  }
+}
+
+
+class _DevImpersonateSheet extends StatefulWidget {
+  const _DevImpersonateSheet();
+
+  @override
+  State<_DevImpersonateSheet> createState() => _DevImpersonateSheetState();
+}
+
+class _DevImpersonateSheetState extends State<_DevImpersonateSheet> {
+  final _ctrl = TextEditingController();
+  final _common = const ['pikachu', 'julieee_mun', 'sarah_kuo', 'stabley_woo', 'demo'];
+
+  @override
+  void dispose() {_ctrl.dispose(); super.dispose();}
+
+  Future<void> _switchTo(String username) async {
+    await context.read<AuthStore>().devQuickSwitchProfile(username);
+    if(!mounted) return;
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('@$username (dev only)')));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final inset = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: inset),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('Dev: Impersonate username', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _ctrl,
+                decoration: InputDecoration(
+                  hintText: 'Enter username',
+                  prefixIcon: const Icon(Icons.alternate_email),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onSubmitted: _switchTo,
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8, runSpacing: 8,
+                children: _common.map((u) => ActionChip(
+                  label: Text(u),
+                  onPressed: () => _switchTo(u),
+                )).toList(),
+              ),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: () => _switchTo(_ctrl.text.trim()),
+                child: const Text('Impersonate'),
+              ),
+            ],
+          ),
         ),
       ),
     );

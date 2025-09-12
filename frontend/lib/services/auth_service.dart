@@ -1,19 +1,30 @@
+import 'api.dart';
+
 typedef AuthToken = String;
 
 class AuthService {
-  /// Mock Login: accepts only demo@tabi.app / password
-  static Future<bool> login(String email, String pass) async {
-    await Future.delayed(const Duration(seconds: 1));
-    return email == 'demo@tabi.app' && pass == 'password';
+  static final _api = ApiClient.instance;
+
+  static Future<AuthToken> login(String email, String password) async {
+    final body = await _api.post('/auth/login', body: {'email': email, 'password': password}) as Map<String, dynamic>;
+
+    final token = body['access_token'] as String?;
+    if (token == null || token.isEmpty) {
+      throw Exception('Login failed: no access_token in response');
+    }
+    // persist into ApiClient so other calls get the header
+    _api.setAccessToken(token);
+    return token;
   }
 
-  /// Mock token retrieval: returns a placeholder token or null
-  static Future<AuthToken> getToken() async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    return 'stub-token';
+  static Future<Map<String, dynamic>> me() async {
+    final body = await _api.get('/auth/me');
+    return body as Map<String, dynamic>;
   }
 
   static Future<void> logout() async {
-    
+    _api.setAccessToken(null);
   }
+
+  static String? get token => _api.accessToken;
 }

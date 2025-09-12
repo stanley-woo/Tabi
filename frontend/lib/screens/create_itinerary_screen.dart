@@ -835,12 +835,11 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
         description: _descriptionController.text.trim(),
         isPublic: true,
         tags: _tags,
-        creatorId: 2, // swap to AuthStore.userId when wired
       );
 
       // 2) Fetch detail to get the server-seeded Day 1
       final detail = await ItineraryService.fetchDetail(itinId);
-      final serverDays = detail.days; // should contain Day 1
+      final serverDays = detail.days;
 
       final List<int> dayIds = [];
       if (serverDays.isEmpty) {
@@ -862,6 +861,7 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
         final firstLocal = nonEmptyDays.first;
         try {
           await DayGroupService.updateDayGroup(
+            itineraryId: itinId,
             dayId: seeded.id,
             date: firstLocal.date,
             title: null,
