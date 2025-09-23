@@ -132,8 +132,41 @@ class _DetailedItineraryScreenState extends State<DetailedItineraryScreen> {
             padding: const EdgeInsets.all(16),
             children: [
               if (itin.description.isNotEmpty) ...[
-                Text(itin.description, style: GoogleFonts.poppins(fontSize: 16)),
-                const SizedBox(height: 24),
+                  Card(
+                    elevation: 2, // Controls the shadow intensity
+                    margin: const EdgeInsets.only(bottom: 24), // Add space below the card
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.teal.withAlpha(13),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Trip Overview',
+                            style: GoogleFonts.poppins(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.teal.shade800,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            itin.description,
+                            style: GoogleFonts.poppins(
+                              fontSize: 14,
+                              height: 1.5, // Improves readability for multi-line text
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                // END MODIFICATION
               ],
 
               ...itin.days.map((day) {

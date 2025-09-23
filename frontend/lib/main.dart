@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:frontend/services/auth_service.dart';
 import 'state/auth_store.dart';
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
@@ -17,10 +18,15 @@ final RouteObserver<ModalRoute<void>> routeObserver =
     RouteObserver<ModalRoute<void>>();
 
 
-void main() {
+Future<void> main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await AuthService.init();
+  final authSore = AuthStore();
+  await authSore.boot();
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => AuthStore()..boot(),
+    ChangeNotifierProvider.value(
+      value: authSore,
       child: const Tabi(),
     ),
   );

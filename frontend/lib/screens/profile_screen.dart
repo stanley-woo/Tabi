@@ -8,6 +8,7 @@ import '../services/itinerary_service.dart';
 import '../models/itinerary.dart';
 import 'package:provider/provider.dart';
 import '../state/auth_store.dart';
+import 'dart:ui';
 
 class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   final TabBar _tabBar;
@@ -169,15 +170,21 @@ class _ProfileScreenState extends State<ProfileScreen>
                         if (headerUrl != null)
                           imageFromRef(headerUrl, fit: BoxFit.cover),
                           // Image.network(headerUrl, fit: BoxFit.cover),
+                        // START REPLACEMENT: A STRONGER GRADIENT SCRIM
                         const DecoratedBox(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [Color(0x99000000), Color(0x19000000)],
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter, // Fade upwards
+                              colors: [
+                                Colors.black87,       // More opaque black at the bottom
+                                Colors.transparent,     // Fully transparent at the top
+                              ],
+                              stops: [0.0, 0.5], // Controls the gradient: solid black for the bottom 50%
                             ),
                           ),
                         ),
+                        // END REPLACEMENT
                         if (avatarUrl != null)
                           Positioned(
                             bottom: 16,
@@ -197,29 +204,53 @@ class _ProfileScreenState extends State<ProfileScreen>
                           bottom: 16 + 48 + 8,
                           left: 128,
                           right: 16,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                uname,
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w600,
+                          // 1. Clip the filter's effect to the rounded rectangle shape
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            // 2. Apply the BackdropFilter for the frosted glass effect
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                              // 3. The Container now provides a subtle tint over the blur
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  // Use a much lower opacity color to tint the blurred background
+                                  color: Colors.black.withAlpha(50),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min, // Ensures container fits the text
+                                  children: [
+                                    Text(
+                                      uname,
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w600,
+                                        shadows: const [
+                                          Shadow(blurRadius: 1.5, color: Colors.black54)
+                                        ],
+                                      ),
+                                    ),
+                                    if (bio != null && bio.isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Text(
+                                          bio,
+                                          style: GoogleFonts.poppins(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            shadows: const [
+                                              Shadow(blurRadius: 1.0, color: Colors.black87)
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
-                              if (bio != null && bio.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 4),
-                                  child: Text(
-                                    bio,
-                                    style: GoogleFonts.poppins(
-                                      color: Colors.white70,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                            ],
+                            ),
                           ),
                         ),
 
@@ -403,6 +434,7 @@ class _Stat extends StatelessWidget {
             color: Colors.white,
             fontSize: 16,
             fontWeight: FontWeight.bold,
+            shadows: [Shadow(blurRadius: 1.5, color: Colors.black87)]
           ),
         ),
         const SizedBox(height: 4),
