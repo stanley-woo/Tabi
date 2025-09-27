@@ -5,6 +5,8 @@ import '../models/itinerary.dart';
 import '../services/itinerary_service.dart';
 import '../services/profile_service.dart';
 import '../navigation/profile_args.dart';
+import 'package:provider/provider.dart';
+import '../state/auth_store.dart';
 
 class HomeSearchSheet extends StatefulWidget {
   final String currentUser; // e.g., 'julieee_mun'
@@ -253,15 +255,6 @@ class _PeoplePaneState extends State<_PeoplePane> {
                   borderRadius: BorderRadius.circular(12)),
               tileColor: Colors.grey[100],
               leading: CircleAvatar(backgroundImage: imgProv, child: imgProv == null ? const Icon(Icons.person) : null),
-              // leading: CircleAvatar(
-              //   backgroundImage:
-              //       (avatar != null && avatar.isNotEmpty)
-              //           ? NetworkImage(avatar)
-              //           : null,
-              //   child: (avatar == null || avatar.isEmpty)
-              //       ? const Icon(Icons.person)
-              //       : null,
-              // ),
               title: Text(
                 (u['display_name'] as String?) ?? username,
                 style:
@@ -269,32 +262,32 @@ class _PeoplePaneState extends State<_PeoplePane> {
               ),
               subtitle: Text('@$username'),
               trailing: _busy
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : IconButton(
-                      tooltip: 'Follow',
-                      icon: const Icon(Icons.person_add_alt_1),
-                      onPressed: () async {
-                        if (username == widget.currentUser) return;
-                        setState(() => _busy = true);
-                        try {
-                          await ProfileService.follow(
-                              widget.currentUser, username);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content:
-                                      Text('Following @$username')),
-                            );
+                ? const CircularProgressIndicator()
+                : Consumer<AuthStore>( // <-- 1. Wrap the button in a Consumer
+                    builder: (context, auth, child) {
+                      final isFollowing = auth.isFollowing(username); // <-- 2. Check the store
+                      return IconButton(
+                        tooltip: isFollowing ? 'Unfollow' : 'Follow',
+                        icon: Icon(
+                          isFollowing ? Icons.check_circle : Icons.person_add_alt_1, // <-- 3. Change icon based on state
+                          color: isFollowing ? Colors.teal : null,
+                        ),
+                        onPressed: () async {
+                          setState(() => _busy = true);
+                          try {
+                            // <-- 4. Call the new methods in the store
+                            if (isFollowing) {
+                              await auth.unfollow(username);
+                            } else {
+                              await auth.follow(username);
+                            }
+                          } finally {
+                            if (mounted) setState(() => _busy = false);
                           }
-                        } finally {
-                          if (mounted) setState(() => _busy = false);
-                        }
-                      },
-                    ),
+                        },
+                      );
+                    },
+                  ),
               onTap: () {
                 Navigator.pop(context); // close sheet
                 Navigator.pushNamed(

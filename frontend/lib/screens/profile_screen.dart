@@ -33,15 +33,11 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
       old._tabBar != _tabBar || old.backgroundColor != backgroundColor;
 }
 
-/// Profile wired to backend. `username` = the profile being viewed,
-/// `currentUser` = who is logged in (used for follow/save actions).
 class ProfileScreen extends StatefulWidget {
   final String username;
-  final String currentUser;
   const ProfileScreen({
     super.key,
     required this.username,
-    required this.currentUser,
   });
 
   @override
@@ -56,10 +52,6 @@ class _ProfileScreenState extends State<ProfileScreen>
   late Future<List<Itinerary>> _futureCreated;
   late Future<List<Itinerary>> _futureSaved;
 
-  // Follow-state UI
-  bool? _isFollowing; // null while loading
-  int? _followerCount; // show immediately & keep in sync with toggle
-
   @override
   void initState() {
     super.initState();
@@ -67,42 +59,18 @@ class _ProfileScreenState extends State<ProfileScreen>
     _loadData();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _initFollowState();
-  }
-
-  void _initFollowState() {
-    final me = context.read<AuthStore?>()?.username ?? widget.currentUser;
-    if (me == widget.username) {
-      if (_isFollowing != null) setState(() => _isFollowing = null);
-      return;
-    }
-    ProfileService.isFollowing(me, widget.username).then((isF) {
-      if (mounted) setState(() => _isFollowing = isF);
-    }).catchError((_) {
-      if (mounted) setState(() => _isFollowing = false);
-    });
-  }
-
   void _loadData() {
-    _futureProfile =
-        ProfileService.fetchProfile(widget.username).then((profile) {
-      // seed follower count from server stats
-      final stats = (profile['stats'] as Map<String, dynamic>?) ?? {};
-      _followerCount = (stats['followers'] as int?) ?? 0;
-      return profile;
-    });
-
-    _futureCreated =
-        ItineraryService.fetchCreatedByUsername(widget.username);
+    _futureProfile = ProfileService.fetchProfile(widget.username);
+    _futureCreated = ItineraryService.fetchCreatedByUsername(widget.username);
     _futureSaved = ItineraryService.fetchSavedByUsername(widget.username);
   }
 
   Future<void> _refresh() async {
+    // Trigger a re-fetch of all data for the profile screen
     setState(_loadData);
-    _initFollowState();
+    // Also tell the AuthStore to refresh its list of who the user is following
+    await context.read<AuthStore>().fetchFollowing();
+    // Wait for all futures to complete before ending the refresh indicator
     await Future.wait([_futureProfile, _futureCreated, _futureSaved]);
   }
 
@@ -114,15 +82,16 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   Widget build(BuildContext context) {
-    // who am I? (Provider) — fall back to route arg if not set
-    final me = context.watch<AuthStore?>()?.username ?? widget.currentUser;
+    final auth = context.watch<AuthStore>();
+    final me = auth.username;
     final viewingSelf = me == widget.username;
+    final isFollowing = auth.isFollowing(widget.username);
 
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: NestedScrollView(
-          headerSliverBuilder: (_, _) => [
+          headerSliverBuilder: (_, __) => [
             SliverAppBar(
               expandedHeight: 260,
               pinned: true,
@@ -152,7 +121,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                     );
                   }
 
-                  // Unpack header payload
                   final p = snap.data!;
                   final uname = p['username'] as String? ?? widget.username;
                   final headerUrl = resolveImageRef(url: p['header_url'] as String?, name: p['header_name'] as String?);
@@ -161,7 +129,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   final stats = p['stats'] as Map<String, dynamic>? ?? {};
                   final places = stats['places'] ?? 0;
                   final trips = stats['trips'] ?? 0;
-                  final followers = _followerCount ?? (stats['followers'] ?? 0);
+                  final followers = stats['followers'] ?? 0;
 
                   return FlexibleSpaceBar(
                     background: Stack(
@@ -169,22 +137,16 @@ class _ProfileScreenState extends State<ProfileScreen>
                       children: [
                         if (headerUrl != null)
                           imageFromRef(headerUrl, fit: BoxFit.cover),
-                          // Image.network(headerUrl, fit: BoxFit.cover),
-                        // START REPLACEMENT: A STRONGER GRADIENT SCRIM
                         const DecoratedBox(
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               begin: Alignment.bottomCenter,
-                              end: Alignment.topCenter, // Fade upwards
-                              colors: [
-                                Colors.black87,       // More opaque black at the bottom
-                                Colors.transparent,     // Fully transparent at the top
-                              ],
-                              stops: [0.0, 0.5], // Controls the gradient: solid black for the bottom 50%
+                              end: Alignment.topCenter,
+                              colors: [Colors.black87, Colors.transparent],
+                              stops: [0.0, 0.5],
                             ),
                           ),
                         ),
-                        // END REPLACEMENT
                         if (avatarUrl != null)
                           Positioned(
                             bottom: 16,
@@ -198,29 +160,23 @@ class _ProfileScreenState extends State<ProfileScreen>
                               ),
                             ),
                           ),
-
-                        // Username & bio
                         Positioned(
                           bottom: 16 + 48 + 8,
                           left: 128,
                           right: 16,
-                          // 1. Clip the filter's effect to the rounded rectangle shape
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(12),
-                            // 2. Apply the BackdropFilter for the frosted glass effect
                             child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-                              // 3. The Container now provides a subtle tint over the blur
+                              filter: ImageFilter.blur(sigmaX: 6.0, sigmaY: 6.0),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
-                                  // Use a much lower opacity color to tint the blurred background
-                                  color: Colors.black.withAlpha(50),
+                                  color: Colors.black.withAlpha(15),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min, // Ensures container fits the text
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
                                       uname,
@@ -229,7 +185,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                                         fontSize: 24,
                                         fontWeight: FontWeight.w600,
                                         shadows: const [
-                                          Shadow(blurRadius: 1.5, color: Colors.black54)
+                                          Shadow(blurRadius: 3.0, color: Colors.black, offset: Offset(1, 1)),
+                                          Shadow(blurRadius: 6.0, color: Colors.black54, offset: Offset(2, 2)),
                                         ],
                                       ),
                                     ),
@@ -242,7 +199,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                             color: Colors.white,
                                             fontSize: 12,
                                             shadows: const [
-                                              Shadow(blurRadius: 1.0, color: Colors.black87)
+                                              Shadow(blurRadius: 2.0, color: Colors.black, offset: Offset(1, 1)),
                                             ],
                                           ),
                                         ),
@@ -253,8 +210,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                             ),
                           ),
                         ),
-
-                        // Stats row
                         Positioned(
                           bottom: 16,
                           left: 128,
@@ -268,49 +223,21 @@ class _ProfileScreenState extends State<ProfileScreen>
                             ],
                           ),
                         ),
-
-                        // Follow / Following pill (only on other users' profiles)
                         if (!viewingSelf)
                           Positioned(
                             top: 44,
                             right: 16,
                             child: _FollowPill(
-                              loading: _isFollowing == null,
-                              isFollowing: _isFollowing ?? false,
+                              loading: false, // Loading is handled by the store
+                              isFollowing: isFollowing,
                               onToggle: () async {
-                                if (_isFollowing == null) return;
-                                final wantFollow = !(_isFollowing!);
-
-                                // optimistic UI
-                                setState(() {
-                                  _isFollowing = wantFollow;
-                                  _followerCount =
-                                      (_followerCount ?? 0) + (wantFollow ? 1 : -1);
-                                  if ((_followerCount ?? 0) < 0) _followerCount = 0;
-                                });
-
-                                try {
-                                  if (wantFollow) {
-                                    await ProfileService.follow(me, widget.username);
-                                  } else {
-                                    await ProfileService.unfollow(me, widget.username);
-                                  }
-                                } catch (_) {
-                                  // revert on failure
-                                  setState(() {
-                                    _isFollowing = !wantFollow;
-                                    _followerCount =
-                                        (_followerCount ?? 0) + (wantFollow ? -1 : 1);
-                                    if ((_followerCount ?? 0) < 0) _followerCount = 0;
-                                  });
-                                  if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Could not update follow status.'),
-                                      ),
-                                    );
-                                  }
+                                if (isFollowing) {
+                                  await auth.unfollow(widget.username);
+                                } else {
+                                  await auth.follow(widget.username);
                                 }
+                                // After the action, refresh the profile to get the new follower count
+                                await _refresh();
                               },
                             ),
                           ),
@@ -320,8 +247,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                 },
               ),
             ),
-
-            // Sticky tabs
             SliverPersistentHeader(
               pinned: true,
               delegate: _SliverAppBarDelegate(
@@ -340,7 +265,6 @@ class _ProfileScreenState extends State<ProfileScreen>
           body: TabBarView(
             controller: _tabController,
             children: [
-              // CREATED
               FutureBuilder<List<Itinerary>>(
                 future: _futureCreated,
                 builder: (ctx, snap) {
@@ -368,8 +292,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                   );
                 },
               ),
-
-              // SAVED
               FutureBuilder<List<Itinerary>>(
                 future: _futureSaved,
                 builder: (ctx, snap) {
@@ -394,14 +316,15 @@ class _ProfileScreenState extends State<ProfileScreen>
                       final itin = list[i];
                       return _ItinCard(
                         itin: itin,
-                        // Only you can unsave from your own Saved tab
                         trailing: viewingSelf
                             ? IconButton(
                                 tooltip: 'Unsave',
                                 icon: const Icon(Icons.bookmark_remove),
                                 onPressed: () async {
-                                  await ProfileService.unsaveTrip(me, itin.id);
-                                  setState(_loadData);
+                                  if (me != null) {
+                                    await ProfileService.unsaveTrip(me, itin.id);
+                                    setState(_loadData);
+                                  }
                                 },
                               )
                             : null,
@@ -569,7 +492,7 @@ class _DevImpersonateSheet extends StatefulWidget {
 
 class _DevImpersonateSheetState extends State<_DevImpersonateSheet> {
   final _ctrl = TextEditingController();
-  final _common = const ['pikachu', 'julieee_mun', 'sarah_kuo', 'stabley_woo', 'demo'];
+  final _common = const ['julieee_mun', 'sarah_kuo', 'savannah_demers', 'pikachu', 'demo'];
 
   @override
   void dispose() {_ctrl.dispose(); super.dispose();}

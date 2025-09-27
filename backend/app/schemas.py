@@ -12,6 +12,8 @@ DayGroupRead       = ForwardRef("DayGroupRead")
 class UserCreate(BaseModel):
     """Schema for creating a new user."""
     username: str
+    email: Optional[str] = None
+    display_name: Optional[str] = None
     avatar_name: Optional[str] = None
     header_url: Optional[str] = None
     bio: Optional[str] = None

@@ -228,26 +228,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   Center(
                     child: TextButton(
-                        onPressed: _loading ? null : () async {
-                          setState(() => _loading = true);
-                          try {
-                            await context
-                                .read<AuthStore>()
-                                .loginWithCredentials('demo@tabi.app', 'password');
-                            if (!mounted) return;
-                            // (Optional) view as a specific profile while staying admin:
-                            await context.read<AuthStore>().devQuickSwitchProfile('pikachu');
-
-                            Navigator.pushReplacementNamed(context, '/home');
-                          } catch (e) {
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Login failed: $e')),
-                            );
-                          } finally {
-                            if (mounted) setState(() => _loading = false);
-                          }
-                        },
+                      onPressed: _loading ? null : () async {
+                        setState(() => _loading = true);
+                        try {
+                          // Just call login. The AuthStore handles the dev switch internally.
+                          await context.read<AuthStore>().loginWithCredentials('demo@tabi.app', 'password');
+                          
+                          if (!mounted) return;
+                          Navigator.pushReplacementNamed(context, '/home');
+                        } catch (e) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Login failed: $e')),
+                          );
+                        } finally {
+                          if (mounted) setState(() => _loading = false);
+                        }
+                      },
                       child: const Text('Use demo account'),
                     ),
                   ),

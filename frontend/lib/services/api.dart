@@ -30,12 +30,46 @@ class ApiClient {
         ...?extra,
       };
 
+  void Function()? onAuthenticationFailed;
   dynamic _jsonOrThrow(http.Response r) {
-    if (r.statusCode < 200 || r.statusCode >= 300) {
-      throw Exception('HTTP ${r.statusCode}: ${r.body}');
+    if (r.statusCode == 401) {
+      _accessToken = null;
+      
+      // Notify any listeners about auth failure
+      onAuthenticationFailed?.call();
+      
+      // Parse error detail if available
+      String errorMessage = 'Authentication failed - please log in again';
+      try {
+        final body = json.decode(r.body);
+        if (body is Map && body.containsKey('detail')) {
+          errorMessage = body['detail'].toString();
+        }
+      } catch (_) {}
+      
+      throw AuthException(errorMessage);
     }
+    
+    if (r.statusCode < 200 || r.statusCode >= 300) {
+      // Try to parse error message from response
+      String errorMessage = 'HTTP ${r.statusCode}';
+      try {
+        final body = json.decode(r.body);
+        if (body is Map && body.containsKey('detail')) {
+          errorMessage = body['detail'].toString();
+        } else {
+          errorMessage = 'HTTP ${r.statusCode}: ${r.body}';
+        }
+      } catch (_) {
+        errorMessage = 'HTTP ${r.statusCode}: ${r.body}';
+      }
+      throw ApiException(errorMessage);
+    }
+    
     return r.body.isNotEmpty ? json.decode(r.body) : null;
   }
+
+  
 
   // ---- Basic verbs ----
   Future<dynamic> get(String path, {Map<String, String>? headers}) async {
@@ -89,3 +123,19 @@ class ApiClient {
 }
 
 String get baseUrl => ApiClient.instance.baseUrl;
+
+class AuthException implements Exception {
+  final String message;
+  AuthException(this.message);
+  
+  @override
+  String toString() => message;
+}
+
+class ApiException implements Exception {
+  final String message;
+  ApiException(this.message);
+  
+  @override
+  String toString() => message;
+}

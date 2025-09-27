@@ -1,4 +1,3 @@
-// lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -13,20 +12,36 @@ import 'screens/create_itinerary_screen.dart';
 import 'screens/map_picker_screen.dart';
 import 'navigation/profile_args.dart' as nav;
 import 'navigation/create_itinerary_args.dart';
+import 'package:frontend/services/api.dart';
+import 'package:flutter/foundation.dart';
 
 final RouteObserver<ModalRoute<void>> routeObserver =
     RouteObserver<ModalRoute<void>>();
 
 
-Future<void> main() async{
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  
+  // Initialize auth service (validates stored token)
   await AuthService.init();
-  final authSore = AuthStore();
-  await authSore.boot();
+  
+  // Create auth store
+  final authStore = AuthStore();
+  
+  // Set up global 401 handler
+  ApiClient.instance.onAuthenticationFailed = () {
+    if (kDebugMode) {
+      print('[Main] Global auth failure detected, logging out...');
+    }
+    authStore.logout();
+  };
+  
+  // Boot auth store (fetches user info if token is valid)
+  await authStore.boot();
+  
   runApp(
     ChangeNotifierProvider.value(
-      value: authSore,
+      value: authStore,
       child: const Tabi(),
     ),
   );
@@ -63,19 +78,22 @@ class Tabi extends StatelessWidget {
         },
         '/map_picker': (_) => const MapPickerScreen(),
 
-        // CHANGED: resolve currentUser from AuthStore; default to Julie only if missing
+        // --- MODIFIED SECTION ---
+        // The currentUser is now resolved from AuthStore inside ProfileScreen,
+        // so we no longer need to pass it as an argument here.
         '/profile': (context) {
-          final auth = Provider.of<AuthStore?>(context, listen: false);
-          final me = auth?.username ?? 'julieee_mun'; // fallback = Julie
-
           final Object? raw = ModalRoute.of(context)?.settings.arguments;
           if (raw is nav.ProfileArgs) {
             // If a target username was provided, view that profile.
-            return ProfileScreen(username: raw.username, currentUser: me);
+            return ProfileScreen(username: raw.username);
           }
 
-          // No args? View *your own* profile (me vs Julie fallback).
-          return ProfileScreen(username: me, currentUser: me);
+          // No args? View *your own* profile.
+          final auth = Provider.of<AuthStore?>(context, listen: false);
+          final me = auth?.username;
+          // If for some reason we're not logged in, redirect to login
+          if (me == null) return const LoginScreen();
+          return ProfileScreen(username: me);
         },
       },
     );
