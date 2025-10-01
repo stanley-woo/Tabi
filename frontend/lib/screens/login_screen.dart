@@ -1,20 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/state/auth_store.dart';
 import 'package:provider/provider.dart';
-import 'dart:io' show Platform;
+import '../state/auth_store.dart';
+import 'register_screen.dart';
+import 'dart:io';
 
-
-/*
-Simple login stub: replace with real auth flow later
-*/
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
-
-
 }
 
 class _LoginScreenState extends State<LoginScreen> {
@@ -52,32 +47,8 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // Future<void> _submit() async {
-  //   setState(() {
-  //     _loading = true;
-  //     _error = null;
-  //   });
-  //   final ok = await AuthService.login(
-  //     _emailCtrl.text.trim(),
-  //     _passCtrl.text.trim(),
-  //   );
-  //   setState(() {
-  //     _loading = false;
-  //   });
-
-  //   if(ok) {
-  //     // ignore: use_build_context_synchronously
-  //     Navigator.pushReplacementNamed(context, '/home');
-  //   } else {
-  //     setState(() => _error = 'Invalid Credentials.');}
-  // }
-
   void _onRegisterPressed() {
-    // TODO: Navigate to your Register screen (or open a sheet)
-    // Navigator.pushNamed(context, '/register');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Register pressed (stub)')),
-    );
+    Navigator.of(context).push(MaterialPageRoute(builder: (context) => const RegisterScreen()));
   }
 
   Future<void> _onGooglePressed() async {

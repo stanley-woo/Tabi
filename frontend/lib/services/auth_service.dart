@@ -36,6 +36,14 @@ class AuthService {
     await prefs.remove(_tokenKey);
   }
 
+  static Future<void> register(String username, String email, String password) async {
+    await _api.post('/auth/register', body: {
+      'username': username,
+      'email': email,
+      'password': password
+    });
+  }
+
   static Future<AuthToken> login(String email, String password) async {
     final body = await _api.post('/auth/login', body: {'email': email, 'password': password}) as Map<String, dynamic>;
 

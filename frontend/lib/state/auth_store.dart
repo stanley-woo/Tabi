@@ -62,6 +62,22 @@ class AuthStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> registerAndLogin(String username, String email, String password) async {
+    loading = true;
+    notifyListeners();
+
+    try {
+      await AuthService.register(username, email, password);
+      
+      await loginWithCredentials(email, password);
+    } catch (e) {
+      rethrow;
+    } finally {
+      loading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> loginWithCredentials(String email, String password) async {
     loading = true; 
     notifyListeners();
