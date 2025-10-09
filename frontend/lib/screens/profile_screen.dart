@@ -98,6 +98,19 @@ class _ProfileScreenState extends State<ProfileScreen>
               backgroundColor: Colors.transparent,
               elevation: 0,
               leading: const BackButton(color: Colors.white),
+              actions: [
+                if (viewingSelf)
+                  IconButton(
+                    icon: const Icon(Icons.logout, color: Colors.while),
+                    tooltip: 'Logout',
+                    onPressed: () async {
+                      await auth.logout();
+                      if (mounted) {
+                        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                      }
+                    },
+                  ),
+              ],
               flexibleSpace: FutureBuilder<Map<String, dynamic>>(
                 future: _futureProfile,
                 builder: (ctx, snap) {

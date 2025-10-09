@@ -7,103 +7,21 @@ from datetime import date
 
 async def seed_data():
     """
-    Seeds the database with users (including passwords) and rich itineraries.
-    This script is idempotent and works with the original crud.py.
+    Seeds the database with a single user for testing.
     """
-    print("🌱 Starting database seeding with clean data...")
-
-    # In backend/app/seed.py
+    print("🌱 Starting database seeding with a single user...")
 
     users_to_create = [
         {
-            "username": "julieee_mun", "email": "julie@tabi.app", "display_name": "Julie Mun",
+            "username": "julieee_mun", "email": "stanleywoo450401@gmail.com", "display_name": "Julie Mun",
             "bio": "Music lover 🎵 | Coastal drives 🌊 | California dreaming",
             "avatar_name": "Julie.jpg",
             "header_url": "http://localhost:8000/static/Julie.jpg"
-        },
-        {
-            "username": "sarah_kuo", "email": "sarah@tabi.app", "display_name": "Sarah Kuo",
-            "bio": "Tokyo wanderer 🗾 | Onsen enthusiast ♨️ | Street food hunter",
-            "avatar_name": "Sarah.jpg",
-            "header_url": "http://localhost:8000/static/Sarah.jpg"
-        },
-        {
-            "username": "savannah_demers", "email": "savannah@tabi.app", "display_name": "Savannah Demers",
-            "bio": "Film photographer 📸 | Road trip planner 🚗 | Sunset chaser",
-            "avatar_name": "assets/savannah_demers_icons.jpg",
-            "header_url": "assets/savannah_demers_cover.jpg"
-        },
-        {
-            "username": "pikachu", "email": "pikachu@tabi.app", "display_name": "Pikachu",
-            "bio": "⚡ Adventure seeker | Photo spots finder | Spreading joy worldwide",
-            "avatar_name": "assets/pikachu_profile.jpg",
-            "header_url": "assets/pikachu_champ.jpg"
-        },
-        {
-            "username": "demo", "email": "demo@tabi.app", "display_name": "Demo User",
-            "bio": "Just here to explore!"
         }
     ]
     
-    itineraries_to_create = [
-        {
-            "creator_username": "julieee_mun",
-            "title": "Big Sur & Coastal Charm: A 3-Day Road Trip",
-            "description": "A long weekend escape down California's iconic Highway 1. We chased sunsets, found hidden coffee shops, and let the ocean breeze guide us. Here's how to do it right.",
-            "tags": ["California", "Road Trip", "Hiking", "Photography", "Coast"],
-            "visibility": "public",
-            "days": [
-                {
-                    "date": "2025-08-16", "title": "Day 1: Carmel's Fairytale Vistas",
-                    "blocks": [
-                        {"type": "text", "content": "Started the day early to beat the traffic out of the city. First stop: Carmel-by-the-Sea. It feels like stepping into a storybook. Grabbed an amazing latte at Carmel Valley Coffee Roasting Co."},
-                        {"type": "image", "content": "https://images.unsplash.com/photo-1593962266236-8aca3b19b646?q=80&w=2940&auto=format&fit=crop"},
-                        {"type": "text", "content": "Spent the afternoon walking along the stunning Carmel Beach. The white sand is incredible, and it's super dog-friendly!"},
-                        {"type": "map", "content": "36.5552,-121.9233"}
-                    ]
-                },
-                {
-                    "date": "2025-08-17", "title": "Day 2: The Heart of Big Sur",
-                    "blocks": [
-                        {"type": "image", "content": "https://images.unsplash.com/photo-1521352321946-4a10d21a2ed4?q=80&w=2874&auto=format&fit=crop"},
-                        {"type": "text", "content": "The main event! Driving Highway 1 through Big Sur is breathtaking. We stopped at every viewpoint, but the iconic Bixby Creek Bridge was a highlight. Pro tip: go early to avoid the crowds."},
-                        {"type": "text", "content": "Lunch was at Nepenthe, which has an absolutely insane cliffside view. A bit pricey, but worth it for the experience. Hiked down to McWay Falls in the afternoon to see the waterfall cascading onto the beach."},
-                        {"type": "map", "content": "36.2372,-121.7829"}
-                    ]
-                }
-            ]
-        },
-        {
-            "creator_username": "sarah_kuo",
-            "title": "48 Hours in Tokyo: Shrines, Shibuya, and Skylines",
-            "description": "My whirlwind weekend in one of the world's most exciting cities. From ancient temples to neon-drenched streets, here's my guide to seeing the best of Tokyo in just two days.",
-            "tags": ["Tokyo", "Japan", "City Guide", "Food", "Culture"],
-            "visibility": "public",
-            "days": [
-                {
-                    "date": "2025-09-20", "title": "Day 1: Tradition & Modernity",
-                    "blocks": [
-                        {"type": "text", "content": "Morning started with a peaceful walk through Meiji Jingu shrine. It's amazing how quiet and serene it is right next to the bustling city. From there, we dove into the vibrant chaos of Harajuku's Takeshita Street."},
-                        {"type": "image", "content": "https://images.unsplash.com/photo-1542051841857-5f90071e7989?q=80&w=2940&auto=format&fit=crop"},
-                        {"type": "text", "content": "In the afternoon, we headed to Shibuya to witness the famous scramble crossing. We grabbed a coffee at Starbucks overlooking the intersection to get the best view. It's mesmerizing!"},
-                        {"type": "map", "content": "35.6591,139.7006"}
-                    ]
-                },
-                {
-                    "date": "2025-09-21", "title": "Day 2: Markets and High Views",
-                    "blocks": [
-                        {"type": "text", "content": "Woke up at the crack of dawn to visit the Tsukiji Outer Market for the freshest sushi breakfast imaginable. It's a sensory overload in the best way possible."},
-                        {"type": "map", "content": "35.6655,139.7709"},
-                        {"type": "text", "content": "Ended the trip by going up the Tokyo Skytree for a panoramic view of the entire city. Seeing Mount Fuji in the distance as the sun set was the perfect way to say goodbye."},
-                        {"type": "image", "content": "https://images.unsplash.com/photo-1536098561742-ca998e48cbcc?q=80&w=2835&auto=format&fit=crop"}
-                    ]
-                }
-            ]
-        }
-    ]
-
     with Session(engine) as session:
-        print(f"👥 Creating {len(users_to_create)} users with default password 'password'...")
+        print(f"👥 Creating user 'julieee_mun' with default password 'password'...")
         for user_data in users_to_create:
             if not crud.get_user_by_username(session, username=user_data["username"]):
                 db_user = crud.create_user_with_password(
@@ -119,42 +37,177 @@ async def seed_data():
                 db_user.header_url = user_data.get("header_url")
                 session.add(db_user)
                 session.commit()
-        print("✅ Users created.")
-
-        print(f"\n🗺️  Creating {len(itineraries_to_create)} itineraries...")
-        for itin_data in itineraries_to_create:
-            creator = crud.get_user_by_username(session, username=itin_data["creator_username"])
-            if not creator: continue
-
-            if not session.exec(select(crud.Itinerary).where(crud.Itinerary.title == itin_data["title"], crud.Itinerary.creator_id == creator.id)).first():
-                itinerary_in_data = itin_data.copy()
-                itinerary_in_data['creator_id'] = creator.id
-                days_data = itinerary_in_data.pop('days', [])
-                del itinerary_in_data['creator_username']
-                
-                itinerary_in = schemas.ItineraryCreate(**itinerary_in_data)
-                db_itinerary = crud.create_itinerary(session=session, data=itinerary_in)
-
-                auto_day_one = session.exec(select(crud.DayGroup).where(crud.DayGroup.itinerary_id == db_itinerary.id)).first()
-                if auto_day_one:
-                    crud.delete_day_group(session, day_id=auto_day_one.id)
-
-                for day_order, day_data in enumerate(days_data, 1):
-                    day_group_in = schemas.DayGroupCreate(
-                        date=date.fromisoformat(day_data["date"]),
-                        title=day_data["title"],
-                        order=day_order
-                    )
-                    db_day_group = crud.create_day_group(session, db_itinerary.id, day_group_in)
-
-                    for block_order, block_data in enumerate(day_data["blocks"], 1):
-                        crud.create_block(session, db_day_group.id, block_order, block_data["type"], block_data["content"])
+        print("✅ User created.")
         
-        print("✅ Itineraries created.")
+        # --- Itinerary creation is commented out for now ---
+        # print(f"\n🗺️  Creating itineraries...")
+        # ... (code for itinerary creation)
+        # print("✅ Itineraries created.")
+
         print("\n🎉 Database seeding complete!")
 
 if __name__ == "__main__":
     asyncio.run(seed_data())
+
+
+
+# # backend/app/seed.py
+# import asyncio
+# from sqlmodel import Session, select
+# from app.database import engine
+# from app import crud, schemas
+# from datetime import date
+
+# async def seed_data():
+#     """
+#     Seeds the database with users (including passwords) and rich itineraries.
+#     This script is idempotent and works with the original crud.py.
+#     """
+#     print("🌱 Starting database seeding with clean data...")
+
+#     # In backend/app/seed.py
+
+#     users_to_create = [
+#         {
+#             "username": "julieee_mun", "email": "stanleywoo450401@gmail.com", "display_name": "Julie Mun",
+#             "bio": "Music lover 🎵 | Coastal drives 🌊 | California dreaming",
+#             "avatar_name": "Julie.jpg",
+#             "header_url": "http://localhost:8000/static/Julie.jpg"
+#         },
+#         {
+#             "username": "sarah_kuo", "email": "stanleywoo450401@gmail.com", "display_name": "Sarah Kuo",
+#             "bio": "Tokyo wanderer 🗾 | Onsen enthusiast ♨️ | Street food hunter",
+#             "avatar_name": "Sarah.jpg",
+#             "header_url": "http://localhost:8000/static/Sarah.jpg"
+#         },
+#         {
+#             "username": "savannah_demers", "email": "stanleywoo450401@gmail.com", "display_name": "Savannah Demers",
+#             "bio": "Film photographer 📸 | Road trip planner 🚗 | Sunset chaser",
+#             "avatar_name": "assets/savannah_demers_icons.jpg",
+#             "header_url": "assets/savannah_demers_cover.jpg"
+#         },
+#         {
+#             "username": "pikachu", "email": "stanleywoo450401@gmail.com", "display_name": "Pikachu",
+#             "bio": "⚡ Adventure seeker | Photo spots finder | Spreading joy worldwide",
+#             "avatar_name": "assets/pikachu_profile.jpg",
+#             "header_url": "assets/pikachu_champ.jpg"
+#         },
+#         {
+#             "username": "demo", "email": "stanleywoo450401@gmail.com", "display_name": "Demo User",
+#             "bio": "Just here to explore!"
+#         }
+#     ]
+    
+#     itineraries_to_create = [
+#         {
+#             "creator_username": "julieee_mun",
+#             "title": "Big Sur & Coastal Charm: A 3-Day Road Trip",
+#             "description": "A long weekend escape down California's iconic Highway 1. We chased sunsets, found hidden coffee shops, and let the ocean breeze guide us. Here's how to do it right.",
+#             "tags": ["California", "Road Trip", "Hiking", "Photography", "Coast"],
+#             "visibility": "public",
+#             "days": [
+#                 {
+#                     "date": "2025-08-16", "title": "Day 1: Carmel's Fairytale Vistas",
+#                     "blocks": [
+#                         {"type": "text", "content": "Started the day early to beat the traffic out of the city. First stop: Carmel-by-the-Sea. It feels like stepping into a storybook. Grabbed an amazing latte at Carmel Valley Coffee Roasting Co."},
+#                         {"type": "image", "content": "https://images.unsplash.com/photo-1593962266236-8aca3b19b646?q=80&w=2940&auto=format&fit=crop"},
+#                         {"type": "text", "content": "Spent the afternoon walking along the stunning Carmel Beach. The white sand is incredible, and it's super dog-friendly!"},
+#                         {"type": "map", "content": "36.5552,-121.9233"}
+#                     ]
+#                 },
+#                 {
+#                     "date": "2025-08-17", "title": "Day 2: The Heart of Big Sur",
+#                     "blocks": [
+#                         {"type": "image", "content": "https://images.unsplash.com/photo-1521352321946-4a10d21a2ed4?q=80&w=2874&auto=format&fit=crop"},
+#                         {"type": "text", "content": "The main event! Driving Highway 1 through Big Sur is breathtaking. We stopped at every viewpoint, but the iconic Bixby Creek Bridge was a highlight. Pro tip: go early to avoid the crowds."},
+#                         {"type": "text", "content": "Lunch was at Nepenthe, which has an absolutely insane cliffside view. A bit pricey, but worth it for the experience. Hiked down to McWay Falls in the afternoon to see the waterfall cascading onto the beach."},
+#                         {"type": "map", "content": "36.2372,-121.7829"}
+#                     ]
+#                 }
+#             ]
+#         },
+#         {
+#             "creator_username": "sarah_kuo",
+#             "title": "48 Hours in Tokyo: Shrines, Shibuya, and Skylines",
+#             "description": "My whirlwind weekend in one of the world's most exciting cities. From ancient temples to neon-drenched streets, here's my guide to seeing the best of Tokyo in just two days.",
+#             "tags": ["Tokyo", "Japan", "City Guide", "Food", "Culture"],
+#             "visibility": "public",
+#             "days": [
+#                 {
+#                     "date": "2025-09-20", "title": "Day 1: Tradition & Modernity",
+#                     "blocks": [
+#                         {"type": "text", "content": "Morning started with a peaceful walk through Meiji Jingu shrine. It's amazing how quiet and serene it is right next to the bustling city. From there, we dove into the vibrant chaos of Harajuku's Takeshita Street."},
+#                         {"type": "image", "content": "https://images.unsplash.com/photo-1542051841857-5f90071e7989?q=80&w=2940&auto=format&fit=crop"},
+#                         {"type": "text", "content": "In the afternoon, we headed to Shibuya to witness the famous scramble crossing. We grabbed a coffee at Starbucks overlooking the intersection to get the best view. It's mesmerizing!"},
+#                         {"type": "map", "content": "35.6591,139.7006"}
+#                     ]
+#                 },
+#                 {
+#                     "date": "2025-09-21", "title": "Day 2: Markets and High Views",
+#                     "blocks": [
+#                         {"type": "text", "content": "Woke up at the crack of dawn to visit the Tsukiji Outer Market for the freshest sushi breakfast imaginable. It's a sensory overload in the best way possible."},
+#                         {"type": "map", "content": "35.6655,139.7709"},
+#                         {"type": "text", "content": "Ended the trip by going up the Tokyo Skytree for a panoramic view of the entire city. Seeing Mount Fuji in the distance as the sun set was the perfect way to say goodbye."},
+#                         {"type": "image", "content": "https://images.unsplash.com/photo-1536098561742-ca998e48cbcc?q=80&w=2835&auto=format&fit=crop"}
+#                     ]
+#                 }
+#             ]
+#         }
+#     ]
+
+#     with Session(engine) as session:
+#         print(f"👥 Creating {len(users_to_create)} users with default password 'password'...")
+#         for user_data in users_to_create:
+#             if not crud.get_user_by_username(session, username=user_data["username"]):
+#                 db_user = crud.create_user_with_password(
+#                     session=session,
+#                     username=user_data["username"],
+#                     email=user_data["email"],
+#                     password="password"
+#                 )
+                
+#                 db_user.display_name = user_data.get("display_name")
+#                 db_user.bio = user_data.get("bio")
+#                 db_user.avatar_name = user_data.get("avatar_name")
+#                 db_user.header_url = user_data.get("header_url")
+#                 session.add(db_user)
+#                 session.commit()
+#         print("✅ Users created.")
+
+#         print(f"\n🗺️  Creating {len(itineraries_to_create)} itineraries...")
+#         for itin_data in itineraries_to_create:
+#             creator = crud.get_user_by_username(session, username=itin_data["creator_username"])
+#             if not creator: continue
+
+#             if not session.exec(select(crud.Itinerary).where(crud.Itinerary.title == itin_data["title"], crud.Itinerary.creator_id == creator.id)).first():
+#                 itinerary_in_data = itin_data.copy()
+#                 itinerary_in_data['creator_id'] = creator.id
+#                 days_data = itinerary_in_data.pop('days', [])
+#                 del itinerary_in_data['creator_username']
+                
+#                 itinerary_in = schemas.ItineraryCreate(**itinerary_in_data)
+#                 db_itinerary = crud.create_itinerary(session=session, data=itinerary_in)
+
+#                 auto_day_one = session.exec(select(crud.DayGroup).where(crud.DayGroup.itinerary_id == db_itinerary.id)).first()
+#                 if auto_day_one:
+#                     crud.delete_day_group(session, day_id=auto_day_one.id)
+
+#                 for day_order, day_data in enumerate(days_data, 1):
+#                     day_group_in = schemas.DayGroupCreate(
+#                         date=date.fromisoformat(day_data["date"]),
+#                         title=day_data["title"],
+#                         order=day_order
+#                     )
+#                     db_day_group = crud.create_day_group(session, db_itinerary.id, day_group_in)
+
+#                     for block_order, block_data in enumerate(day_data["blocks"], 1):
+#                         crud.create_block(session, db_day_group.id, block_order, block_data["type"], block_data["content"])
+        
+#         print("✅ Itineraries created.")
+#         print("\n🎉 Database seeding complete!")
+
+# if __name__ == "__main__":
+#     asyncio.run(seed_data())
 # # database_cleanup.py
 # """
 # PostgreSQL + SQLModel Database Cleanup Script for Tabi

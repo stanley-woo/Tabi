@@ -11,6 +11,13 @@ class Settings(BaseSettings):
     # Load from .env and ignore unknown keys
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
+    MAIL_USERNAME: str
+    MAIL_PASSWORD: str
+    MAIL_FROM: str
+    MAIL_PORT: int = 587
+    MAIL_SERVER: str
+    MAIL_STARTTLS: bool = True
+    MAIL_SSL_TLS: bool = False
     # Read the env var as a plain string (so pydantic won't JSON-decode it first)
     admin_emails_raw: str | None = Field(
         default=None,

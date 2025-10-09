@@ -9,6 +9,7 @@ ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "14"))
+PASSWORD_RESET_TOKEN_EXPIRE_MINUTES = int(os.getenv("PASSWORD_RESET_TOKEN_EXPIRE_MINUTES", "15"))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -32,6 +33,11 @@ def create_access_token(subject: str) -> str:
     """Create a short-lived access token"""
     return _create_jwt(subject, timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
 
+def create_password_reset_token(subject: str) -> str:
+    """Create a short-lived token for password reset"""
+    return _create_jwt(subject, timedelta(minutes=PASSWORD_RESET_TOKEN_EXPIRE_MINUTES))
+
 def decode_jwt(token: str) -> dict:
     """Decode and validate a JWT; raises JWTError on invalid/expired tokens"""
     return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+

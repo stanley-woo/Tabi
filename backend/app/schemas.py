@@ -1,4 +1,5 @@
 from datetime import date
+import email
 from typing import List, Optional, Literal, ForwardRef
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
 
@@ -187,6 +188,12 @@ class TokenPair(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
 
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+class PasswordReset(BaseModel):
+    token: str
+    new_password: str
 
 # finalize forward refs for all three interdependent schemas
 ItineraryRead.model_rebuild()

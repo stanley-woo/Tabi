@@ -41,7 +41,8 @@ dependencies:
   dio: ^5.9.0
   flutter_secure_storage: ^9.2.4
   shared_preferences: ^2.2.3
-  font_awesome_flutter: ^11.0.0
+  font_awesome_flutter: ^10.10.0
+  app_links: ^3.5.0
 
 
 dev_dependencies:

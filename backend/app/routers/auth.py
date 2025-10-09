@@ -1,13 +1,44 @@
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
+from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
+from jose import JWTError
 
 from app.database import get_session
 from app.deps import get_current_user, is_admin
 from app.models import User
-from app.schemas import RegisterRequest, LoginRequest, RefreshRequest, TokenPair, UserRead, MeOut
+from app.schemas import PasswordReset, PasswordResetRequest, RegisterRequest, LoginRequest, RefreshRequest, TokenPair, UserRead, MeOut
 from app import crud
-from app.security import create_access_token
+from app.security import create_access_token, create_password_reset_token, decode_jwt
+from app.settings import settings
+
+
+# --- BEGIN: Mail Sending Logic ---
+
+conf = ConnectionConfig(
+    MAIL_USERNAME=settings.MAIL_USERNAME,
+    MAIL_PASSWORD=settings.MAIL_PASSWORD,
+    MAIL_FROM=settings.MAIL_FROM,
+    MAIL_PORT=settings.MAIL_PORT,
+    MAIL_SERVER=settings.MAIL_SERVER,
+    MAIL_STARTTLS=settings.MAIL_STARTTLS,
+    MAIL_SSL_TLS=settings.MAIL_SSL_TLS,
+    USE_CREDENTIALS=True,
+    VALIDATE_CERTS=True
+)
+
+fm = FastMail(conf)
+
+async def send_email(subject: str, recipients: list[str], body: str):
+    message = MessageSchema(
+        subject=subject,
+        recipients=recipients,
+        html=body,
+        subtype="html"
+    )
+    await fm.send_message(message)
+
+# --- END: Mail Sending Logic ---
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -62,3 +93,50 @@ def me(current_user: User = Depends(get_current_user)):
     - get_current_user() decodes JWT + loads the user from DB
     """
     return MeOut(id=current_user.id,username=current_user.username,email=current_user.email,is_admin=is_admin(current_user))
+
+@router.post("/forgot-password", status_code=202)
+async def forget_password(data: PasswordResetRequest, session: Session = Depends(get_session)):
+    """
+    Send a password reset email to the user.
+    """
+    user = crud.get_user_by_email(session, email=str(data.email))
+    if user:
+        # Create a password reset token
+        token = create_password_reset_token(subject=str(data.email))
+        # This is where you would structure your email
+        reset_url = f"tabi://reset-password?token={token}"
+        email_body = f"""
+        <html>
+        <body>
+            <p>Hello,</p>
+            <p>You requested a password reset. Click the link below to reset your password:</p>
+            <a href="{reset_url}">Reset Password</a>
+            <p>If you did not request this, please ignore this email.</p>
+        </body>
+        </html>
+        """
+        await send_email(
+            subject="Password Reset Request",
+            recipients=[str(data.email)],
+            body=email_body
+        )
+
+        return {"msg": "If a user with that email exists, a password reset link has been sent."}
+
+@router.post("/reset-password", status_code=200)
+def reset_password(data: PasswordReset, session: Session = Depends(get_session)):
+    """Reset the user's password using a valid token."""
+    try:
+        payload = decode_jwt(data.token)
+        email = payload.get("sub")
+        if not email:
+            raise HTTPException(status_code=400, detail="Invalid token: Subject missing")
+        user = crud.get_user_by_email(session, email=email)
+
+        if not user:
+            raise HTTPException(status_code=400, detail="User not found")
+        crud.update_user_password(session, user, data.new_password)
+        return {"msg": "Password updated successfully"}
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Invalid or expired token")
+    
