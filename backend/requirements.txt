@@ -5,8 +5,10 @@ psycopg2-binary
 pydantic-settings==2.3.4
 pydantic==2.8.2
 python-jose[cryptography]
-passlib[bcrypt]
+passlib[bcrypt,pyca]
 alembic
 python-multipart
 fastapi-mail==1.4.1
 slugify
+bcrypt==4.0.1
+PyNaCl==1.5.0

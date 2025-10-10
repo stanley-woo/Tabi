@@ -6,6 +6,9 @@ import 'package:app_links/app_links.dart';
 import 'package:frontend/screens/reset_password_screen.dart';
 import '../state/auth_store.dart';
 
+// Temporary flag: enable after Apple associated domains are configured
+const bool kEnableDeepLinks = true;
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -16,6 +19,8 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> {
   late AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
+  bool _navigated = false;
+  Timer? _safetyTimer;
 
   @override
   void initState() {
@@ -26,46 +31,62 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void dispose() {
     _linkSubscription?.cancel();
+    _safetyTimer?.cancel();
     super.dispose();
   }
 
   Future<void> _initDeepLinks() async {
+    if (!kEnableDeepLinks) {
+      Timer(const Duration(seconds: 1), _initApp);
+      return;
+    }
+
     _appLinks = AppLinks();
 
-    // Check for the initial link that launched the app
-    final initialUri = await _appLinks.getInitialLink();
+    _safetyTimer = Timer(const Duration(seconds: 2), () {
+      if (!_navigated) _initApp();
+    });
 
-    if (initialUri != null) {
-      // If a deep link is found, process it immediately
-      _processLink(initialUri);
-    } else {
-      // If no deep link, proceed with normal app start after a short delay
-      // to allow the user to see the splash screen.
-      Timer(const Duration(seconds: 2), _initApp);
+    Uri? initialUri;
+    try {
+      initialUri = await _appLinks.getInitialAppLink().timeout(const Duration(milliseconds: 800));
+    } catch (_) {
+      initialUri = null;
     }
 
-    // Listen for any further links that come in while the app is running
-    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
-      _processLink(uri);
-    });
+    if (initialUri != null && _handleDeepLink(initialUri)) return;
+
+    _linkSubscription = _appLinks.uriLinkStream.listen(_handleDeepLink);
   }
   
-  void _processLink(Uri uri) {
-    if (!mounted) return;
-    // We expect links like "tabi://reset-password?token=..."
+  bool _handleDeepLink(Uri uri) {
+    print('Handling deep link: $uri');
+    if (!mounted) return false;
     if (uri.scheme == 'tabi' && uri.host == 'reset-password') {
       final token = uri.queryParameters['token'];
-      if (token != null) {
-        Navigator.of(context).pushReplacement(MaterialPageRoute(
-          builder: (_) => ResetPasswordScreen(token: token),
-        ));
-      }
+      if (token == null || token.isEmpty) return false;
+
+      // One-shot: cancel timers/streams and mark as navigated
+      _safetyTimer?.cancel();
+      _linkSubscription?.cancel();
+      _navigated = true;
+
+      // Defer navigation until after the first frame
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => ResetPasswordScreen(token: token)),
+        );
+      });
+      return true;
     }
+    return false;
   }
 
   void _initApp() {
-    if (!mounted) return;
-    // This is the original navigation logic
+    if (!mounted || _navigated) return;
+    _navigated = true;
+    _safetyTimer?.cancel();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = Provider.of<AuthStore>(context, listen: false);
       if (auth.isLoggedIn) {
@@ -78,7 +99,6 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // --- YOUR UI IS PRESERVED HERE ---
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -88,7 +108,7 @@ class _SplashScreenState extends State<SplashScreen> {
             colors: [Colors.teal, Colors.tealAccent],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            ),
+          ),
         ),
         child: Center(
           child: Image.asset(

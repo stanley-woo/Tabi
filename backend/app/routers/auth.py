@@ -14,6 +14,12 @@ from app.settings import settings
 
 
 # --- BEGIN: Mail Sending Logic ---
+try:
+    # Newer fastapi-mail exposes an enum for subtype; if not present, we’ll just pass "html" as a string
+    from fastapi_mail import MessageType
+    HTML_SUBTYPE = MessageType.html
+except Exception:
+    HTML_SUBTYPE = "html"
 
 conf = ConnectionConfig(
     MAIL_USERNAME=settings.MAIL_USERNAME,
@@ -24,7 +30,8 @@ conf = ConnectionConfig(
     MAIL_STARTTLS=settings.MAIL_STARTTLS,
     MAIL_SSL_TLS=settings.MAIL_SSL_TLS,
     USE_CREDENTIALS=True,
-    VALIDATE_CERTS=True
+    VALIDATE_CERTS=True,
+    MAIL_FROM_NAME=getattr(settings, "MAIL_FROM_NAME", None),
 )
 
 fm = FastMail(conf)
@@ -33,8 +40,8 @@ async def send_email(subject: str, recipients: list[str], body: str):
     message = MessageSchema(
         subject=subject,
         recipients=recipients,
-        html=body,
-        subtype="html"
+        body=body,
+        subtype=HTML_SUBTYPE
     )
     await fm.send_message(message)
 

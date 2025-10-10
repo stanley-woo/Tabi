@@ -101,7 +101,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               actions: [
                 if (viewingSelf)
                   IconButton(
-                    icon: const Icon(Icons.logout, color: Colors.while),
+                    icon: const Icon(Icons.logout, color: Colors.white),
                     tooltip: 'Logout',
                     onPressed: () async {
                       await auth.logout();
