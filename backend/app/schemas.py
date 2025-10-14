@@ -36,6 +36,7 @@ class MeOut(BaseModel):
     username: str | None = None
     email: str | None = None
     is_admin: bool
+    is_email_verified: bool = False
 
 
 # -----------------------------
@@ -193,6 +194,16 @@ class PasswordResetRequest(BaseModel):
 
 class PasswordReset(BaseModel):
     token: str
+    new_password: str
+
+class EmailVerificationRequest(BaseModel):
+    email: EmailStr
+
+class VerifyEmail(BaseModel):
+    token: str
+
+class ChangePassword(BaseModel):
+    current_password: str
     new_password: str
 
 # finalize forward refs for all three interdependent schemas

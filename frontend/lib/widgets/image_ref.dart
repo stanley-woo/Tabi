@@ -34,8 +34,21 @@ String? resolveImageRef({String? url, String? name}) {
   if ((u.startsWith('http://') || u.startsWith('https://'))) return u;
   if ((n.startsWith('http://') || n.startsWith('https://'))) return n;
 
+  // If we have a /static/ path, convert it to absolute URL
+  if (u.startsWith('/static/')) {
+    return FileService.absoluteUrl(u);
+  }
+  if (n.startsWith('/static/')) {
+    return FileService.absoluteUrl(n);
+  }
+
   // If we only have a bare filename, serve from /static
   if (n.isNotEmpty) return FileService.absoluteUrl('/static/$n');
+  
+  // If u is a bare filename (no path), serve from /static
+  if (u.isNotEmpty && !u.startsWith('/') && !u.startsWith('http')) {
+    return FileService.absoluteUrl('/static/$u');
+  }
 
   return u; // could be null
 }
@@ -58,8 +71,20 @@ Widget imageFromRef(String? ref, {double? height, double? width, BoxFit? fit}) {
   if (ref.startsWith('assets/')) {
     return Image.asset(ref, height: height, width: width, fit: fit);
   }
+  
+  // Convert relative paths to absolute URLs
+  String imageUrl;
+  if (ref.startsWith('/')) {
+    imageUrl = FileService.absoluteUrl(ref);
+  } else if (ref.startsWith('http')) {
+    imageUrl = ref;
+  } else {
+    // It's a bare filename, add /static/ prefix
+    imageUrl = FileService.absoluteUrl('/static/$ref');
+  }
+  
   return Image.network(
-    ref, height: height, width: width, fit: fit,
+    imageUrl, height: height, width: width, fit: fit,
     errorBuilder: (_, _, _) => Container(
       height: height, width: width, color: Colors.grey.shade200,
       alignment: Alignment.center,

@@ -19,6 +19,7 @@ class User(SQLModel, table=True):
     avatar_name: str | None = None
     header_url: str | None = None
     bio: str | None = None
+    is_email_verified: bool = Field(default=False)
     # existing relationship to itineraries
     itineraries: List["Itinerary"] = Relationship(back_populates="creator")
 

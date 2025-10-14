@@ -401,3 +401,21 @@ def issue_token_pair_for_user(session: Session, user: User) -> tuple[str, Refres
     access = create_access_token(subject=user.email)
     refresh = create_refresh_token(session=session, user_id=user.id)
     return access, refresh
+
+def update_user_password(session: Session, user: User, new_password: str) -> User:
+    """Update a user's password."""
+    user.hashed_password = hash_password(new_password)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
+
+def revoke_all_user_tokens(session: Session, user_id: int) -> None:
+    """Revoke all refresh tokens for a user (force re-login)."""
+    from sqlmodel import delete
+    from app.models import RefreshToken
+    
+    # Delete all refresh tokens for this user
+    stmt = delete(RefreshToken).where(RefreshToken.user_id == user_id)
+    session.exec(stmt)
+    session.commit()

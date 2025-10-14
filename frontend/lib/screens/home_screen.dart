@@ -33,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Open the unified search sheet and store the returned query.
   Future<void> _openSearch() async {
     // read once (don’t rebuild on change)
-    final me = context.read<AuthStore>().username ?? 'julieee_mun';
+    final me = context.read<AuthStore>().username ?? '';
 
     final result = await showModalBottomSheet<String>(
       context: context,
@@ -60,7 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final me = context.watch<AuthStore>().username ?? 'julieee_mun';
+    final me = context.watch<AuthStore>().username ?? '';
     final q = (_query ?? '').toLowerCase();
 
     return DefaultTabController(
@@ -141,7 +141,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _followingPane(String q, String me) {
     final future = Future.wait([
       _futureItineraries,                         // List<Itinerary>
-      ProfileService.fetchFollowingIds(me),       // List<int>
+      ProfileService.fetchFollowingIds(me).catchError((e) {
+        return <int>[]; // Return empty list on error
+      }),       // List<int>
     ]).then<List<Itinerary>>((res) {
       final all = res[0] as List<Itinerary>;
       final followingIds = Set<int>.from(res[1] as List<int>);

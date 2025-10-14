@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:frontend/widgets/image_ref.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -91,26 +90,41 @@ class _ProfileScreenState extends State<ProfileScreen>
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: NestedScrollView(
-          headerSliverBuilder: (_, __) => [
+          headerSliverBuilder: (_, _) => [
             SliverAppBar(
               expandedHeight: 260,
               pinned: true,
               backgroundColor: Colors.transparent,
               elevation: 0,
               leading: const BackButton(color: Colors.white),
-              actions: [
-                if (viewingSelf)
-                  IconButton(
-                    icon: const Icon(Icons.logout, color: Colors.white),
-                    tooltip: 'Logout',
-                    onPressed: () async {
-                      await auth.logout();
-                      if (mounted) {
-                        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-                      }
-                    },
-                  ),
-              ],
+        actions: [
+          if (viewingSelf) ...[
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.white),
+              tooltip: 'Edit Profile',
+              onPressed: () {
+                Navigator.of(context).pushNamed('/edit-profile');
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.lock, color: Colors.white),
+              tooltip: 'Change Password',
+              onPressed: () {
+                Navigator.of(context).pushNamed('/change-password');
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.logout, color: Colors.white),
+              tooltip: 'Logout',
+              onPressed: () async {
+                await auth.logout();
+                if (mounted) {
+                  Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                }
+              },
+            ),
+          ],
+        ],
               flexibleSpace: FutureBuilder<Map<String, dynamic>>(
                 future: _futureProfile,
                 builder: (ctx, snap) {
@@ -350,7 +364,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
         ),
       ),
-      floatingActionButton: kDebugMode ? const _DevImpersonateFab() : null,
+      floatingActionButton: null,
     );
   }
 }
@@ -477,87 +491,3 @@ class _ItinCard extends StatelessWidget {
   }
 }
 
-class _DevImpersonateFab extends StatelessWidget {
-  const _DevImpersonateFab();
-
-  @override
-  Widget build(BuildContext context) {
-    return FloatingActionButton.extended(
-      icon: const Icon(Icons.switch_account),
-      label: const Text('Switch user'),
-      onPressed: () => showModalBottomSheet(
-        context: context,
-        showDragHandle: true,
-        isScrollControlled: true,
-        builder: (_) => const _DevImpersonateSheet(),
-      ),
-    );
-  }
-}
-
-
-class _DevImpersonateSheet extends StatefulWidget {
-  const _DevImpersonateSheet();
-
-  @override
-  State<_DevImpersonateSheet> createState() => _DevImpersonateSheetState();
-}
-
-class _DevImpersonateSheetState extends State<_DevImpersonateSheet> {
-  final _ctrl = TextEditingController();
-  final _common = const ['julieee_mun', 'sarah_kuo', 'savannah_demers', 'pikachu', 'demo'];
-
-  @override
-  void dispose() {_ctrl.dispose(); super.dispose();}
-
-  Future<void> _switchTo(String username) async {
-    await context.read<AuthStore>().devQuickSwitchProfile(username);
-    if(!mounted) return;
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('@$username (dev only)')));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final inset = MediaQuery.of(context).viewInsets.bottom;
-    return Padding(
-      padding: EdgeInsets.only(bottom: inset),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text('Dev: Impersonate username', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _ctrl,
-                decoration: InputDecoration(
-                  hintText: 'Enter username',
-                  prefixIcon: const Icon(Icons.alternate_email),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                onSubmitted: _switchTo,
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8, runSpacing: 8,
-                children: _common.map((u) => ActionChip(
-                  label: Text(u),
-                  onPressed: () => _switchTo(u),
-                )).toList(),
-              ),
-              const SizedBox(height: 12),
-              FilledButton(
-                onPressed: () => _switchTo(_ctrl.text.trim()),
-                child: const Text('Impersonate'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}

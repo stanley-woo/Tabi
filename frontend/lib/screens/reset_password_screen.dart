@@ -16,8 +16,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   void _submit() {
     if (_formKey.currentState!.validate()) {
       // TODO: Call AuthService to reset the password with widget.token
-      print('Token: ${widget.token}');
-      print('New Password: ${_passwordController.text}');
       
       // Show success message and navigate to login
       ScaffoldMessenger.of(context).showSnackBar(
@@ -37,7 +35,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           key: _formKey,
           child: Column(
             children: [
-              Text('Token: ${widget.token}'), // For debugging, you can remove this
               const SizedBox(height: 16),
               TextFormField(
                 controller: _passwordController,

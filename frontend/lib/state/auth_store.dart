@@ -9,16 +9,35 @@ class AuthStore extends ChangeNotifier {
   int? userId;
   bool loading = false;
 
-  String get currentUsername => username ?? 'julieee_mun';
-  bool get isLoggedIn => ApiClient.instance.accessToken != null;
+  String get currentUsername => username ?? '';
+  bool get isLoggedIn {
+    final result = ApiClient.instance.accessToken != null;
+    return result;
+  }
 
   // ignore: prefer_final_fields
   Set<String> _followingUsernames = {};
   bool isFollowing(String username) => _followingUsernames.contains(username.toLowerCase());
 
   void _debugLog(String message) {
-    if (kDebugMode) {
-      print('[AuthStore] $message');
+  }
+  
+  // Debug method to clear all stored data
+  Future<void> clearAllData() async {
+    await AuthService.logout();
+    username = null;
+    userId = null;
+    _followingUsernames.clear();
+    loading = false;
+    notifyListeners();
+  }
+  
+  // Test if the current token is valid by making a simple API call
+  Future<void> testTokenValidity() async {
+    try {
+      await AuthService.me();
+    } catch (e) {
+      rethrow;
     }
   }
 
@@ -91,20 +110,7 @@ class AuthStore extends ChangeNotifier {
       username = me['username'] as String?;
       userId = (me['id'] as num?)?.toInt();
 
-      // 3) DEV ONLY: profile switching
-      final e = email.toLowerCase();
-      final demoEmails = [
-        'demo@tabi.app',
-        'julie@tabi.app',
-        'sarah@tabi.app',
-        'savannah@tabi.app',
-        'pikachu@tabi.app'
-      ];
-      if (demoEmails.contains(e)) {
-        // If so, keep their powerful token, but switch the UI to view a
-        // specific profile by default.
-        await devQuickSwitchProfile('julieee_mun');
-      }
+      // User authentication completed
     } catch (err) {
       // Clear auth state on failure
       await AuthService.logout();
@@ -131,18 +137,7 @@ class AuthStore extends ChangeNotifier {
     }
   }
 
-  // Dev-only: keep admin token but jump to another profile view
-  Future<void> devQuickSwitchProfile(String uname) async {
-    username = uname;
-    await _resolveUserId();
-    await fetchFollowing();
-    notifyListeners();
-  }
 
-  Future<void> _resolveUserId() async {
-    if (username == null) return;
-    userId = await ProfileService.getUserIdByUsername(username!);
-  }
 
   Future<void> follow(String targetUsername) async {
     if (username == null) return;
@@ -162,6 +157,8 @@ class AuthStore extends ChangeNotifier {
     await AuthService.logout();  // Now async to handle token cleanup
     username = null;
     userId = null;
+    _followingUsernames.clear();
+    loading = false;
     notifyListeners();
   }
 }

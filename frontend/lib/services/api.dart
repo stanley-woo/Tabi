@@ -57,7 +57,7 @@ class ApiClient {
           // Retry the original request with the new token
           response = await requestFunction();
         } catch (e) {
-          print("Token refresh failed: $e");
+          // Token refresh failed
           _refreshCompleter!.completeError(e); // Signal that refresh failed
           onAuthenticationFailed?.call(); // Trigger global logout
           throw AuthException('Your session has expired. Please log in again.');

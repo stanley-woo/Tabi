@@ -31,7 +31,10 @@ class FileService {
       final p = path.trim();
       if (p.startsWith('assets/')) return p;
       if (p.startsWith('http://') || p.startsWith('https://')) return p;
-      final withSlash = p.startsWith('/') ? p : '/$p';
-      return '$baseUrl$withSlash';
+      
+      // Ensure baseUrl doesn't end with slash and path starts with slash
+      final cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+      final cleanPath = p.startsWith('/') ? p : '/$p';
+      return '$cleanBaseUrl$cleanPath';
     }
 }

@@ -9,7 +9,7 @@ async def seed_data():
     """
     Seeds the database with a single user for testing.
     """
-    print("🌱 Starting database seeding with a single user...")
+    # Starting database seeding
 
     users_to_create = [
         {
@@ -21,7 +21,7 @@ async def seed_data():
     ]
     
     with Session(engine) as session:
-        print(f"👥 Creating user 'julieee_mun' with default password 'password'...")
+        # Creating user
         for user_data in users_to_create:
             if not crud.get_user_by_username(session, username=user_data["username"]):
                 db_user = crud.create_user_with_password(
@@ -37,14 +37,14 @@ async def seed_data():
                 db_user.header_url = user_data.get("header_url")
                 session.add(db_user)
                 session.commit()
-        print("✅ User created.")
+        # User created
         
         # --- Itinerary creation is commented out for now ---
         # print(f"\n🗺️  Creating itineraries...")
         # ... (code for itinerary creation)
         # print("✅ Itineraries created.")
-
-        print("\n🎉 Database seeding complete!")
+        
+        # Database seeding complete
 
 if __name__ == "__main__":
     asyncio.run(seed_data())

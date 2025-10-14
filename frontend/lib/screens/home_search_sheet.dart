@@ -9,7 +9,7 @@ import 'package:provider/provider.dart';
 import '../state/auth_store.dart';
 
 class HomeSearchSheet extends StatefulWidget {
-  final String currentUser; // e.g., 'julieee_mun'
+  final String currentUser;
   final String? initialQuery; // prefill from Home
 
   const HomeSearchSheet({
@@ -28,8 +28,8 @@ class _HomeSearchSheetState extends State<HomeSearchSheet>
   late final TextEditingController _q =
       TextEditingController(text: widget.initialQuery ?? '');
 
-  late Future<List<Itinerary>> _futureTrips = ItineraryService.fetchList();
-  late Future<List<Map<String, dynamic>>> _futurePeople =
+  final Future<List<Itinerary>> _futureTrips = ItineraryService.fetchList();
+  final Future<List<Map<String, dynamic>>> _futurePeople =
       ProfileService.listUsers();
 
   void _onChanged(String _) => setState(() {});
@@ -113,7 +113,6 @@ class _HomeSearchSheetState extends State<HomeSearchSheet>
                   tabs: const [Tab(text: 'Trips'), Tab(text: 'People')],
                 ),
 
-                // ✅ Take remaining space; no fixed height
                 Expanded(
                   child: TabBarView(
                     controller: _tabs,
@@ -169,7 +168,7 @@ class _TripsPane extends StatelessWidget {
         return ListView.separated(
           padding: const EdgeInsets.all(12),
           itemCount: list.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          separatorBuilder: (_, _) => const SizedBox(height: 8),
           itemBuilder: (_, i) {
             final itin = list[i];
             return ListTile(
@@ -243,7 +242,7 @@ class _PeoplePaneState extends State<_PeoplePane> {
         return ListView.separated(
           padding: const EdgeInsets.all(12),
           itemCount: people.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          separatorBuilder: (_, _) => const SizedBox(height: 8),
           itemBuilder: (_, i) {
             final u = people[i];
             final avatar = resolveImageRef(url: u['avatar_url'] as String?, name: u['avatar_name'] as String?);

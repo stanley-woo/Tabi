@@ -64,7 +64,9 @@ class AuthService {
   static Future<void> refreshToken() async {
     final prefs = await SharedPreferences.getInstance();
     final oldRefreshToken = prefs.getString(_refreshTokenKey);
-    if (oldRefreshToken == null) throw Exception('No refresh token available');
+    if (oldRefreshToken == null) {
+      throw Exception('No refresh token available');
+    }
 
     final body = await _api.post('/auth/refresh', body: {'refresh_token': oldRefreshToken}) as Map<String, dynamic>;
     
@@ -92,11 +94,26 @@ class AuthService {
         await _api.post('/auth/logout', body: {'refresh_token': refreshToken});
       } catch (e) {
         // Fail silently - user wants to log out anyway
-        print("Logout API call failed, but proceeding with local logout: $e");
+        // Logout API call failed, but proceeding with local logout
       }
     }
     _api.setAccessToken(null);
     await _clearStoredTokens();
+  }
+
+  static Future<void> verifyEmail(String token) async {
+    await _api.post('/auth/verify-email', body: {'token': token});
+  }
+
+  static Future<void> resendVerification(String email) async {
+    await _api.post('/auth/resend-verification', body: {'email': email});
+  }
+
+  static Future<void> changePassword(String currentPassword, String newPassword) async {
+    await _api.post('/auth/change-password', body: {
+      'current_password': currentPassword,
+      'new_password': newPassword,
+    });
   }
 
   static String? get token => _api.accessToken;
