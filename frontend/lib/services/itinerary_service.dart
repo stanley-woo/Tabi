@@ -18,12 +18,13 @@ class ItineraryService {
   }
 
   /// Create a new itinerary. Returns the created ID.
-  static Future<int> createItinerary({required String title, required String description, required bool isPublic, required List<String> tags}) async {
+  static Future<int> createItinerary({required String title, required String description, required bool isPublic, required List<String> tags, required DateTime start_date}) async {
     final payload = {
       'title': title,
       'description': description,
       'visibility': isPublic ? 'public' : 'private',
-      'tags': tags
+      'tags': tags,
+      'start_date': start_date.toIso8601String().split('T')[0],
     };
     final body = await _api.post('/itineraries', body: payload)
         as Map<String, dynamic>;
@@ -70,13 +71,13 @@ class ItineraryService {
 
   /// Convenience: create an itinerary "as" a username.
   /// Resolves username -> userId via ProfileService, then calls your existing createItinerary().
-  static Future<int> createForUsername({required String username, required String title, String description = '', bool isPublic = true, List<String> tags = const []}) async {
+  static Future<int> createForUsername({required String username, required String title, String description = '', bool isPublic = true, List<String> tags = const [], required DateTime start_date}) async {
     final userId = await ProfileService.getUserIdByUsername(username);
     if(userId == null) {
       throw Exception('No such user: $username');
     }
 
-    return createItinerary(title: title, description: description, isPublic: isPublic, tags: tags);
+    return createItinerary(title: title, description: description, isPublic: isPublic, tags: tags, start_date: start_date);
   }
 
   /// Resolves username -> userId, then calls your existing forkItinerary().

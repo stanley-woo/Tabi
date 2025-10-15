@@ -9,6 +9,7 @@ import '../screens/map_picker_screen.dart';
 import '../services/file_service.dart';
 import '../services/itinerary_service.dart';
 import '../services/day_group_service.dart';
+import 'package:geolocator/geolocator.dart';
 
 enum BlockType { text, image, map }
 
@@ -160,6 +161,54 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
       setState(() {
         block.content = result.path;
       });
+    }
+  }
+
+  Future<void> _useCurrentLocation(int idx) async {
+    try {
+      // Check if location services are enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Location services are disabled')),
+        );
+        return;
+      }
+
+      // Check location permissions
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Location permission denied')),
+          );
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Location permission permanently denied')),
+        );
+        return;
+      }
+
+      // Get current position
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      final day = _days[_selectedDay];
+      final block = day.blocks[idx];
+      
+      setState(() {
+        block.content = '${position.latitude},${position.longitude}';
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error getting location: $e')),
+      );
     }
   }
 
@@ -455,6 +504,11 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
                 icon: const Icon(Icons.map),
                 label: const Text('Pick Location'),
                 onPressed: () => _pickLocation(idx),
+              ),
+              TextButton.icon(
+                icon: const Icon(Icons.my_location),
+                label: const Text('Use Current Location'),
+                onPressed: () => _useCurrentLocation(idx),
               ),
             ],
           ],
@@ -835,6 +889,7 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
         description: _descriptionController.text.trim(),
         isPublic: true,
         tags: _tags,
+        start_date: nonEmptyDays.first.date,
       );
 
       // 2) Fetch detail to get the server-seeded Day 1

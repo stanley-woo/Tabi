@@ -28,7 +28,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>com.tabi.tabi</string>
+			<string>com.stabley-mudkip.tabi</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>tabi</string>

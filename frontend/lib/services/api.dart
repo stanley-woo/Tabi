@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 // Import AuthService to access the refreshToken method
 import 'auth_service.dart';
+import '../config/app_config.dart';
 
 /// API client with automatic token refresh interception.
 class ApiClient {
@@ -19,8 +20,14 @@ class ApiClient {
   bool _isRefreshing = false;
   Completer<void>? _refreshCompleter;
 
-  // ---- Base URL resolution (your logic is preserved) ----
+  // ---- Base URL resolution ----
   String get baseUrl {
+    // Use production URL if configured
+    if (AppConfig.isProduction) {
+      return AppConfig.backendUrl;
+    }
+    
+    // Development URLs
     if (kIsWeb) return 'http://localhost:8000';
     if (defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:8000';
