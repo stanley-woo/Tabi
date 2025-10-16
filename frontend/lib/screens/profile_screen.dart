@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/widgets/image_ref.dart';
 import 'package:google_fonts/google_fonts.dart';
-
 import '../services/profile_service.dart';
 import '../services/itinerary_service.dart';
 import '../models/itinerary.dart';
 import 'package:provider/provider.dart';
 import '../state/auth_store.dart';
 import 'dart:ui';
+import '../services/file_service.dart';
 
 class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   final TabBar _tabBar;
@@ -73,6 +73,48 @@ class _ProfileScreenState extends State<ProfileScreen>
     await Future.wait([_futureProfile, _futureCreated, _futureSaved]);
   }
 
+
+  Future<void> _deleteProfile() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Account'),
+        content: const Text('Are you sure you want to delete your account? This will permanently delete all your data and cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete Account'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await ProfileService.deleteUser();
+        if (mounted) {
+          // Clear user data and go to login
+          // You'll need to implement this based on your auth system
+          Navigator.pushReplacementNamed(context, '/login');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Account deleted successfully')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete account: $e')),
+          );
+        }
+      }
+    }
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -114,6 +156,11 @@ class _ProfileScreenState extends State<ProfileScreen>
               },
             ),
             IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red),
+              tooltip: 'Delete Account',
+              onPressed: _deleteProfile,
+            ),
+            IconButton(
               icon: const Icon(Icons.logout, color: Colors.white),
               tooltip: 'Logout',
               onPressed: () async {
@@ -150,8 +197,16 @@ class _ProfileScreenState extends State<ProfileScreen>
 
                   final p = snap.data!;
                   final uname = p['username'] as String? ?? widget.username;
-                  final headerUrl = resolveImageRef(url: p['header_url'] as String?, name: p['header_name'] as String?);
-                  final avatarUrl = resolveImageRef(url: p['avatar_url'] as String?, name: p['avatar_name'] as String?);
+                  // final headerUrl = resolveImageRef(url: p['header_url'] as String?, name: p['header_name'] as String?);
+                  // final avatarUrl = resolveImageRef(url: p['avatar_url'] as String?, name: p['avatar_name'] as String?);
+                  final headerUrl = resolveImageRef(
+                    url: p['header_url'] != null ? FileService.absoluteUrl(p['header_url']) : null, 
+                    name: p['header_name'] as String?
+                  );
+                  final avatarUrl = resolveImageRef(
+                    url: p['avatar_url'] != null ? FileService.absoluteUrl(p['avatar_url']) : null, 
+                    name: p['avatar_name'] as String?
+                  );
                   final bio = p['bio'] as String?;
                   final stats = p['stats'] as Map<String, dynamic>? ?? {};
                   final places = stats['places'] ?? 0;
@@ -490,4 +545,3 @@ class _ItinCard extends StatelessWidget {
     );
   }
 }
-

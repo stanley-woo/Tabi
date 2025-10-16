@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/file_service.dart';
 
-
-
 bool isAssetRef(String? ref) => ref != null && ref.startsWith('assets/');
 
 String _normalizeRef(String? s) {
@@ -18,7 +16,7 @@ String _normalizeRef(String? s) {
 }
 
 ImageProvider<Object>? imageProviderFor(String? ref) {
-    if (ref == null || ref.isEmpty) return null;
+  if (ref == null || ref.isEmpty) return null;
   return ref.startsWith('assets/') ? AssetImage(ref) : NetworkImage(ref);
 }
 
@@ -30,9 +28,19 @@ String? resolveImageRef({String? url, String? name}) {
   if (u.startsWith('assets/')) return u;
   if (n.startsWith('assets/')) return n;
 
-  // If either is already an absolute URL, use it
-  if ((u.startsWith('http://') || u.startsWith('https://'))) return u;
-  if ((n.startsWith('http://') || n.startsWith('https://'))) return n;
+  // If either is already an absolute URL, check for localhost and replace it
+  if ((u.startsWith('http://') || u.startsWith('https://'))) {
+    if (u.contains('localhost:8000')) {
+      return FileService.absoluteUrl(u);
+    }
+    return u;
+  }
+  if ((n.startsWith('http://') || n.startsWith('https://'))) {
+    if (n.contains('localhost:8000')) {
+      return FileService.absoluteUrl(n);
+    }
+    return n;
+  }
 
   // If we have a /static/ path, convert it to absolute URL
   if (u.startsWith('/static/')) {

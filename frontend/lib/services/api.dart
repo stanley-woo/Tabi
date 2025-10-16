@@ -32,7 +32,7 @@ class ApiClient {
     if (defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:8000';
     }
-    return 'http://localhost:8000';
+    return AppConfig.backendUrl;
   }
 
   // ---- Token management ----

@@ -28,13 +28,25 @@ class FileService {
   }
 
   static String absoluteUrl(String path) {
-      final p = path.trim();
-      if (p.startsWith('assets/')) return p;
-      if (p.startsWith('http://') || p.startsWith('https://')) return p;
-      
-      // Ensure baseUrl doesn't end with slash and path starts with slash
-      final cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
-      final cleanPath = p.startsWith('/') ? p : '/$p';
-      return '$cleanBaseUrl$cleanPath';
+    final p = path.trim();
+    if (p.startsWith('assets/')) return p;
+    if (p.startsWith('http://') || p.startsWith('https://')) {
+      // If it's already a full URL, check if it's localhost and replace it
+      if (p.contains('localhost:8000')) {
+        final cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+        final cleanPath = p.substring(p.indexOf('/static/'));
+        final fullUrl = '$cleanBaseUrl$cleanPath';
+        print('DEBUG: Rewritten localhost URL: $fullUrl');
+        return fullUrl;
+      }
+      return p;
     }
+    
+    // Ensure baseUrl doesn't end with slash and path starts with slash
+    final cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
+    final cleanPath = p.startsWith('/') ? p : '/$p';
+    final fullUrl = '$cleanBaseUrl$cleanPath';
+    print('DEBUG: Generated image URL: $fullUrl');
+    return fullUrl;
+  }
 }

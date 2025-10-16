@@ -87,4 +87,8 @@ class ItineraryService {
   }) async {
     return forkItinerary(originalItineraryId: originalItineraryId);
   }
+
+  static Future<void> deleteItinerary(int itineraryId) async {
+    await _api.delete_('/itineraries/$itineraryId');
+  }
 }

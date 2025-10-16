@@ -15,7 +15,7 @@ import '../services/profile_service.dart';
 
 class DetailedItineraryScreen extends StatefulWidget {
   final int id;
-  final String? currentUser; // CHANGED: optional (Provider is the source of truth)
+  final String? currentUser;
 
   const DetailedItineraryScreen({
     super.key,
@@ -48,6 +48,11 @@ class _DetailedItineraryScreenState extends State<DetailedItineraryScreen> {
   String? _me(BuildContext context) {
     final fromProvider = context.read<AuthStore?>()?.username; // NEW
     return fromProvider ?? widget.currentUser;
+  }
+
+  int? _meId(BuildContext context) {
+    final fromProvider = context.read<AuthStore?>()?.userId;
+    return fromProvider ?? int.tryParse(widget.currentUser ?? '');
   }
 
   Future<void> _initSaved() async {
@@ -94,6 +99,45 @@ class _DetailedItineraryScreenState extends State<DetailedItineraryScreen> {
     }
   }
 
+  Future<void> _deleteItinerary() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Itinerary'),
+        content: const Text('Are you sure you want to delete this itinerary? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await ItineraryService.deleteItinerary(widget.id);
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Itinerary deleted successfully')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete itinerary: $e')),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<Itinerary>(
@@ -107,7 +151,6 @@ class _DetailedItineraryScreenState extends State<DetailedItineraryScreen> {
         }
 
         final itin = snap.data!;
-
         return Scaffold(
           appBar: AppBar(
             title: Text(itin.title, style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
@@ -125,7 +168,12 @@ class _DetailedItineraryScreenState extends State<DetailedItineraryScreen> {
                   final it = itin;
                   Navigator.pushNamed(context, '/create', arguments: CreateItineraryArgs(template: it));
                 },
-              )
+              ),
+              if (itin.creatorId == _meId(context))
+                IconButton(
+                  icon: const Icon(Icons.delete),
+                  onPressed: _deleteItinerary,
+                ),
             ],
           ),
           body: ListView(

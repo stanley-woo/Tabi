@@ -109,4 +109,11 @@ class ProfileService {
     final seen = <int>{};
     return ids.where((id) => seen.add(id)).toList();
   }
+
+
+  static Future<void> deleteUser() async {
+      final currentUser = await _api.get('/auth/me');
+      final userId = currentUser['id'];
+      await _api.delete_('/users/$userId');
+  }
 }
