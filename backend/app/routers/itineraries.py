@@ -47,6 +47,7 @@ def create_itinerary_route(*,payload: ItineraryCreateIn,session: Session = Depen
         tags=payload.tags or [],
         creator_id=current_user.id,
         parent_id=payload.parent_id,
+        start_date=payload.start_date,
     )
     return crud_create_itinerary(session, safe_payload)
 

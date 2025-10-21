@@ -4,7 +4,7 @@ from typing import Any, Dict
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 
-SECRET_KEY = os.getenv("SECRET_KEY", "change-me-to-a-long-random-string")
+SECRET_KEY = os.getenv("SECRET_KEY", "174d29a2dbfa4bde33f636011aa18faa8274ed8d72ab72de6fe532e8c43e3567")
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))

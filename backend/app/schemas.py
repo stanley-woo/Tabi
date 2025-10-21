@@ -53,6 +53,7 @@ class ItineraryCreate(ItineraryBase):
     """Fields required to create an itinerary."""
     creator_id: int = Field(..., description="User ID of the creator")
     parent_id: Optional[int] = Field(None, description="Optional parent itinerary for forks")
+    start_date: date = Field(..., description="Start date of the itinerary")
 
 
 class ItineraryUpdate(BaseModel):
@@ -90,7 +91,7 @@ class ItineraryCreateIn(BaseModel):
     visibility: Literal["public", "private"] = "public"
     tags: List[str] = []
     parent_id: Optional[int] = None
-
+    start_date: date = Field(..., description="Start date of the itinerary")
 
 # -----------------------------
 # 3. ItineraryBlock Schemas

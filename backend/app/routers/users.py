@@ -1,12 +1,13 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy.sql.functions import user
 from sqlmodel import Session, select
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 
 from ..utils.urls import to_avatar_url
 from ..database import get_session
-from ..crud import create_user, get_user, list_users
+from ..crud import create_user, get_user, list_users, delete_user
 from ..models import User, Itinerary, Bookmark, Follow
 from ..schemas import (
     ProfileOut, ProfileStats, BookmarkIn, FollowIn,
@@ -21,6 +22,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 def create_user_route(*, data: UserCreate, session: Session = Depends(get_session)):
     """Create a new user."""
     return create_user(session, data)
+    
 
 @router.get("", response_model=List[UserRead], status_code=status.HTTP_200_OK)
 def list_users_route(*, session: Session = Depends(get_session)):
@@ -31,6 +33,17 @@ def list_users_route(*, session: Session = Depends(get_session)):
 def get_user_route(*, user_id: int, session: Session = Depends(get_session)):
     """Fetch a single user by ID."""
     return get_user(session, user_id)
+
+@router.delete("/{user_id}")
+async def delete_user_route(user_id: int, current_user: User = Depends(get_current_user), session: Session = Depends(get_session)):
+    if current_user.id != user_id:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    success = delete_user(session, user_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"message": "User deleted successfully"}
 
 # ---------- PROFILE (HEADER) ----------
 @router.put("/{username}/profile", response_model=ProfileOut)
@@ -126,8 +139,8 @@ def list_saved_itins(
     user = session.exec(select(User).where(User.username == username)).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
-    if user.id != current_user.id and not is_admin(current_user):
-        raise HTTPException(status_code=404, detail="Not Found")
+    # if user.id != current_user.id and not is_admin(current_user):
+    #     raise HTTPException(status_code=404, detail="Not Found")
     q = (
         select(Itinerary)
         .join(Bookmark, Bookmark.itinerary_id == Itinerary.id)

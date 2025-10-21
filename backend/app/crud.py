@@ -34,6 +34,53 @@ def list_users(session: Session) -> List[User]:
     """Return all users"""
     return session.exec(select(User)).all()
 
+def delete_user(session: Session, user_id: int) -> bool:
+    try:
+        print(f"DEBUG: Looking for user_id: {user_id} (type: {type(user_id)})")
+        user = session.get(User, user_id)
+        print(f"DEBUG: Found user: {user}")
+        if not user:
+            print("DEBUG: User not found")
+            return False
+        
+        print("DEBUG: Deleting user...")
+        
+        # First, delete all itineraries owned by this user
+        itineraries = session.exec(select(Itinerary).where(Itinerary.creator_id == user_id)).all()
+        print(f"DEBUG: Found {len(itineraries)} itineraries to delete")
+        for itinerary in itineraries:
+            session.delete(itinerary)
+        
+        # Delete follow relationships where this user is the follower
+        from .models import Follow
+        follows = session.exec(select(Follow).where(Follow.follower_id == user_id)).all()
+        print(f"DEBUG: Found {len(follows)} follow relationships to delete (as follower)")
+        for follow in follows:
+            session.delete(follow)
+        
+        # Delete follow relationships where this user is being followed
+        followed_by = session.exec(select(Follow).where(Follow.following_id == user_id)).all()
+        print(f"DEBUG: Found {len(followed_by)} follow relationships to delete (as following)")
+        for follow in followed_by:
+            session.delete(follow)
+        
+        # Delete refresh tokens for this user
+        from .models import RefreshToken
+        refresh_tokens = session.exec(select(RefreshToken).where(RefreshToken.user_id == user_id)).all()
+        print(f"DEBUG: Found {len(refresh_tokens)} refresh tokens to delete")
+        for token in refresh_tokens:
+            session.delete(token)
+        
+        # Then delete the user
+        session.delete(user)
+        session.commit()
+        print("DEBUG: User deleted successfully")
+        return True
+    except Exception as e:
+        session.rollback()
+        print(f"Error deleting user: {e}")
+        return False
+
 # ----------------------------------
 # ItineraryBlock CRUD
 # ----------------------------------
@@ -187,7 +234,7 @@ def create_itinerary(session: Session, data: ItineraryCreate) -> Itinerary:
         create_day_group(
             session,
             itin.id,
-            DayGroupCreate(date=date.today(), title="Day 1", order=1),
+            DayGroupCreate(date=data.start_date, title="Day 1", order=1),
             autocommit=False,
         )
 
@@ -253,14 +300,22 @@ def update_itinerary(session: Session, itinerary_id: int, data: ItineraryUpdate)
     session.refresh(itin)
     return itin
 
-def delete_itinerary(session: Session, itinerary_id: int) -> None:
+def delete_itinerary(session: Session, itinerary_id: int) -> bool:
     """
     Delete an itinerary by ID.
     Assumes your FK/relationship configuration allows deleting or cascades appropriately.
     """
-    itin = get_itinerary(session, itinerary_id)
-    session.delete(itin)
-    session.commit()
+    try:
+        itin = session.get(Itinerary, itinerary_id)
+        if not itin:
+            return False
+        session.delete(itin)
+        session.commit()
+        return True
+    except Exception as e:
+        session.rollback()
+        print(f"Error deleting itinerary: {e}")
+        return False
 
 # ----------------------------------
 # DayGroup CRUD
