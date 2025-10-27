@@ -1,8 +1,11 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlmodel import Session, select
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
+import uuid
+import os
+from google.cloud import storage
 
 from ..database import get_session
 from ..models import DayGroup, ItineraryBlock
@@ -11,6 +14,14 @@ from ..schemas import ItineraryBlockCreate, ItineraryBlockRead
 from ..deps import ensure_daygroup_owner, ensure_block_owner
 
 router = APIRouter(prefix="/itineraries/{itinerary_id}/days/{day_id}/blocks", tags=["blocks"])
+
+# Google Cloud Storage configuration
+BUCKET_NAME = "tabi-cloud-storage"
+CLOUD_STORAGE_BASE_URL = "https://storage.googleapis.com"
+
+def get_storage_client():
+    """Get Google Cloud Storage client using default credentials."""
+    return storage.Client()
 
 @router.get("", response_model=List[ItineraryBlockRead], status_code=status.HTTP_200_OK)
 def list_blocks_route(*,itinerary_id: int, day_id: int, session: Session = Depends(get_session)):
@@ -33,10 +44,12 @@ def create_block_route(*,itinerary_id: int,day_id: int,payload: ItineraryBlockCr
     next_ord = session.exec(select(func.coalesce(func.max(ItineraryBlock.order), 0)).where(ItineraryBlock.day_group_id == day_id)).one() 
     order = (next_ord + 1) if payload.order is None else payload.order
 
+    # All images should already be Cloud Storage URLs at this point
+    content = payload.content
 
     try:
         # Use your existing helper (which commits + refreshes)
-        return create_block(session=session,day_group_id=day_id,order=order,type=normalized_type,content=payload.content)
+        return create_block(session=session,day_group_id=day_id,order=order,type=normalized_type,content=content)
     except IntegrityError:
         # If you added UNIQUE(day_group_id, order), this gives a friendly error on rare races
         session.rollback()
