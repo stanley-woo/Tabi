@@ -18,8 +18,8 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  late final Future<List<Itinerary>> _futureItineraries;
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  late Future<List<Itinerary>> _futureItineraries;
 
   // single source of truth for search filter
   String? _query;
@@ -27,7 +27,30 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _futureItineraries = ItineraryService.fetchList();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Refresh when app resumes (user returns from create itinerary screen)
+    if (state == AppLifecycleState.resumed) {
+      _refreshItineraries();
+    }
+  }
+
+  /// Refresh the itineraries list
+  void _refreshItineraries() {
+    setState(() {
+      _futureItineraries = ItineraryService.fetchList();
+    });
   }
 
   /// Open the unified search sheet and store the returned query.
@@ -134,8 +157,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
   
   Widget _explorePane(String q) {
-    // reuse your existing fetch-all future
-    return _feedList(_futureItineraries, q);
+    // reuse your existing fetch-all future with pull-to-refresh
+    return RefreshIndicator(
+      onRefresh: () async {
+        _refreshItineraries();
+        // Wait for the refresh to complete
+        await _futureItineraries;
+      },
+      child: _feedList(_futureItineraries, q),
+    );
   }
 
   Widget _followingPane(String q, String me) {
@@ -150,7 +180,14 @@ class _HomeScreenState extends State<HomeScreen> {
       return all.where((i) => followingIds.contains(i.creatorId)).toList();
     });
 
-    return _feedList(future, q);
+    return RefreshIndicator(
+      onRefresh: () async {
+        _refreshItineraries();
+        // Wait for the refresh to complete
+        await _futureItineraries;
+      },
+      child: _feedList(future, q),
+    );
   }
 
     Widget _feedList(Future<List<Itinerary>> future, String q) {

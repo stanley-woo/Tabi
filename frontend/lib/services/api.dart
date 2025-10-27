@@ -22,16 +22,7 @@ class ApiClient {
 
   // ---- Base URL resolution ----
   String get baseUrl {
-    // Use production URL if configured
-    if (AppConfig.isProduction) {
-      return AppConfig.backendUrl;
-    }
-    
-    // Development URLs
-    if (kIsWeb) return 'http://localhost:8000';
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:8000';
-    }
+    // Always use AppConfig.backendUrl for consistency
     return AppConfig.backendUrl;
   }
 

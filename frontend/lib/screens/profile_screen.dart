@@ -197,16 +197,16 @@ class _ProfileScreenState extends State<ProfileScreen>
 
                   final p = snap.data!;
                   final uname = p['username'] as String? ?? widget.username;
-                  // final headerUrl = resolveImageRef(url: p['header_url'] as String?, name: p['header_name'] as String?);
-                  // final avatarUrl = resolveImageRef(url: p['avatar_url'] as String?, name: p['avatar_name'] as String?);
-                  final headerUrl = resolveImageRef(
-                    url: p['header_url'] != null ? FileService.absoluteUrl(p['header_url']) : null, 
-                    name: p['header_name'] as String?
-                  );
-                  final avatarUrl = resolveImageRef(
-                    url: p['avatar_url'] != null ? FileService.absoluteUrl(p['avatar_url']) : null, 
-                    name: p['avatar_name'] as String?
-                  );
+                  final headerUrl = resolveImageRef(url: p['header_url'] as String?, name: p['header_name'] as String?);
+                  final avatarUrl = resolveImageRef(url: p['avatar_url'] as String?, name: p['avatar_name'] as String?);
+                  // final headerUrl = resolveImageRef(
+                  //   url: p['header_url'] != null ? FileService.absoluteUrl(p['header_url']) : null, 
+                  //   name: p['header_name'] as String?
+                  // );
+                  // final avatarUrl = resolveImageRef(
+                  //   url: p['avatar_url'] != null ? FileService.absoluteUrl(p['avatar_url']) : null, 
+                  //   name: p['avatar_name'] as String?
+                  // );
                   final bio = p['bio'] as String?;
                   final stats = p['stats'] as Map<String, dynamic>? ?? {};
                   final places = stats['places'] ?? 0;

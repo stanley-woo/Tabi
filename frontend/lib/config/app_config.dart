@@ -4,14 +4,10 @@ import 'package:flutter/foundation.dart';
 class AppConfig {
   // static const String _devBackendUrl = 'http://localhost:8000';
   static const String _devBackendUrl = 'http://192.168.68.67:8000';
-  static const String _prodBackendUrl = 'https://your-production-url.run.app'; // Update this with your actual GCP Cloud Run URL
+  static const String _prodBackendUrl = 'https://tabi-backend-mmpsmclhjq-uw.a.run.app';
   
   static String get backendUrl {
-    if (kDebugMode) {
-      return _devBackendUrl;
-    }
     return _prodBackendUrl;
-    
   }
   
   static bool get isProduction => !kDebugMode;

@@ -7,6 +7,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 import 'package:apple_maps_flutter/apple_maps_flutter.dart' as amaps;
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 import '../state/auth_store.dart';
 import '../models/itinerary.dart';
@@ -41,7 +43,7 @@ class _DetailedItineraryScreenState extends State<DetailedItineraryScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _initSaved(); // NEW: can safely read Provider here
+    _initSaved();
   }
 
   /// Resolve current user from Provider; fall back to widget.currentUser if provided.
@@ -169,11 +171,20 @@ class _DetailedItineraryScreenState extends State<DetailedItineraryScreen> {
                   Navigator.pushNamed(context, '/create', arguments: CreateItineraryArgs(template: it));
                 },
               ),
-              if (itin.creatorId == _meId(context))
+              if (itin.creatorId == _meId(context)) ...[
                 IconButton(
+                  tooltip: 'Edit',
+                  icon: const Icon(Icons.edit),
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/create', arguments: CreateItineraryArgs(template: itin));
+                  },
+                ),
+                IconButton(
+                  tooltip: 'Delete',
                   icon: const Icon(Icons.delete),
                   onPressed: _deleteItinerary,
                 ),
+              ],
             ],
           ),
           body: ListView(
@@ -214,7 +225,6 @@ class _DetailedItineraryScreenState extends State<DetailedItineraryScreen> {
                       ),
                     ),
                   ),
-                // END MODIFICATION
               ],
 
               ...itin.days.map((day) {
@@ -239,30 +249,42 @@ class _DetailedItineraryScreenState extends State<DetailedItineraryScreen> {
                         case 'text':
                           return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Text(b.content, style: GoogleFonts.poppins(fontSize: 14)),
+                            child: MarkdownBody(
+                              data: b.content,
+                              styleSheet: MarkdownStyleSheet(
+                                p: GoogleFonts.poppins(fontSize: 14),
+                                h1: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold),
+                                h2: GoogleFonts.poppins(fontSize: 20, fontWeight: FontWeight.bold),
+                                h3: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold),
+                                strong: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+                                em: GoogleFonts.poppins(fontStyle: FontStyle.italic),
+                              ),
+                              selectable: true,
+                            ),
                           );
 
                         case 'image':
                         case 'photo': // accept both
                           return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: imageFromRef(b.content, height: 180, width: double.infinity, fit: BoxFit.cover),
-                            // child: Image.network(
-                            //   b.content,
-                            //   fit: BoxFit.cover,
-                            //   loadingBuilder: (ctx, child, prog) =>
-                            //       prog == null ? child : const SizedBox(
-                            //         height: 150,
-                            //         child: Center(child: CircularProgressIndicator()),
-                            //       ),
-                            //   errorBuilder: (ctx, _, __) => Container(
-                            //     height: 150,
-                            //     color: Colors.grey.shade200,
-                            //     child: const Center(
-                            //       child: Icon(Icons.broken_image, size: 40, color: Colors.black26),
-                            //     ),
-                            //   ),
-                            // ),
+                            child: InkWell(
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => Dialog(
+                                    child: Container(
+                                      constraints: const BoxConstraints(maxWidth: double.infinity, maxHeight: double.infinity),
+                                      child: InteractiveViewer(
+                                        minScale: 0.5,
+                                        maxScale: 4.0,
+                                        child: imageFromRef(b.content, height: double.infinity, width: double.infinity, fit: BoxFit.contain),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: imageFromRef(b.content, height: 180, width: double.infinity, fit: BoxFit.cover),
+                            ),
                           );
 
                         case 'map':
@@ -278,33 +300,64 @@ class _DetailedItineraryScreenState extends State<DetailedItineraryScreen> {
                           }
                           return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: SizedBox(
-                              height: 150,
-                              child: Platform.isIOS
-                                  ? amaps.AppleMap(
-                                      initialCameraPosition: amaps.CameraPosition(
-                                        target: amaps.LatLng(lat, lng),
-                                        zoom: 14,
-                                      ),
-                                      annotations: {
-                                        amaps.Annotation(
-                                          annotationId: amaps.AnnotationId('${widget.id}-${b.hashCode}'),
-                                          position: amaps.LatLng(lat, lng),
+                            child: Stack(
+                              children: [
+                                SizedBox(
+                                  height: 150,
+                                  child: Platform.isIOS
+                                      ? amaps.AppleMap(
+                                          initialCameraPosition: amaps.CameraPosition(
+                                            target: amaps.LatLng(lat, lng),
+                                            zoom: 14,
+                                          ),
+                                          annotations: {
+                                            amaps.Annotation(
+                                              annotationId: amaps.AnnotationId('${widget.id}-${b.hashCode}'),
+                                              position: amaps.LatLng(lat, lng),
+                                            )
+                                          },
                                         )
-                                      },
-                                    )
-                                  : gmaps.GoogleMap(
-                                      initialCameraPosition: gmaps.CameraPosition(
-                                        target: gmaps.LatLng(lat, lng),
-                                        zoom: 14,
-                                      ),
-                                      markers: {
-                                        gmaps.Marker(
-                                          markerId: gmaps.MarkerId('${widget.id}-${b.hashCode}'),
-                                          position: gmaps.LatLng(lat, lng),
-                                        )
+                                      : gmaps.GoogleMap(
+                                          initialCameraPosition: gmaps.CameraPosition(
+                                            target: gmaps.LatLng(lat, lng),
+                                            zoom: 14,
+                                          ),
+                                          markers: {
+                                            gmaps.Marker(
+                                              markerId: gmaps.MarkerId('${widget.id}-${b.hashCode}'),
+                                              position: gmaps.LatLng(lat, lng),
+                                            )
+                                          },
+                                        ),
+                                ),
+                                // Overlay tapable area
+                                Positioned.fill(
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: () async {
+                                        // Open location in Apple Maps
+                                        final Uri mapsUri = Uri.parse('http://maps.apple.com/?q=$lat,$lng');
+                                        
+                                        try {
+                                          if (await canLaunchUrl(mapsUri)) {
+                                            await launchUrl(mapsUri, mode: LaunchMode.externalApplication);
+                                          } else {
+                                            // Fallback: Try without external mode
+                                            await launchUrl(mapsUri);
+                                          }
+                                        } catch (e) {
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(content: Text('Could not open maps')),
+                                            );
+                                          }
+                                        }
                                       },
                                     ),
+                                  ),
+                                ),
+                              ],
                             ),
                           );
 

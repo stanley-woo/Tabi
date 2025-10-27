@@ -400,10 +400,11 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
               TextFormField(
                 controller: block.controller,
                 decoration: InputDecoration(
-                  hintText: 'Enter text',
+                  hintText: 'Enter text (supports **bold** and *italic* for markdown)',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  helperText: 'Tip: Use **bold** for bold text and *italic* for italic text',
                 ),
                 maxLines: null,
                 onChanged: (_) => setState(() {}),
@@ -937,6 +938,37 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
       }
 
       // 3) Post blocks for each non-empty day
+      // First, upload all images and collect their URLs
+      final Map<String, String> imageUploads = {};
+      
+      for (var di = 0; di < nonEmptyDays.length; di++) {
+        final day = nonEmptyDays[di];
+        final blocks = day.blocks.where(_blockHasContent).toList();
+
+        for (var bi = 0; bi < blocks.length; bi++) {
+          var content = blocks[bi].content;
+
+          // If it's a local photo path, upload first
+          if (blocks[bi].type == BlockType.image &&
+              content.isNotEmpty &&
+              File(content).existsSync()) {
+            try {
+              final uploadedUrl = await FileService.uploadImage(File(content));
+              imageUploads[content] = uploadedUrl;
+            } catch (e) {
+              // If image upload fails, delete the itinerary and throw error
+              try {
+                await ItineraryService.deleteItinerary(itinId);
+              } catch (_) {
+                // Ignore delete errors, we're already failing
+              }
+              throw Exception('Failed to upload image: $e');
+            }
+          }
+        }
+      }
+
+      // Now create all blocks with the uploaded URLs
       for (var di = 0; di < nonEmptyDays.length; di++) {
         final day = nonEmptyDays[di];
         final dayGroupId = dayIds[di];
@@ -945,11 +977,9 @@ class _CreateItineraryScreenState extends State<CreateItineraryScreen>
         for (var bi = 0; bi < blocks.length; bi++) {
           var content = blocks[bi].content;
 
-          // If it’s a local photo path, upload first
-          if (blocks[bi].type == BlockType.image &&
-              content.isNotEmpty &&
-              File(content).existsSync()) {
-            content = await FileService.uploadImage(File(content));
+          // Use uploaded URL if available
+          if (blocks[bi].type == BlockType.image && imageUploads.containsKey(content)) {
+            content = imageUploads[content]!;
           }
 
           await ItineraryService.createBlock(

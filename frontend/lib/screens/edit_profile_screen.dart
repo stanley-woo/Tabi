@@ -43,8 +43,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       setState(() {
         _displayNameController.text = profile['display_name'] as String? ?? '';
         _bioController.text = profile['bio'] as String? ?? '';
-        _currentAvatarUrl = profile['avatar_url'] as String?;
-        _currentHeaderUrl = profile['header_url'] as String?;
+        _currentAvatarUrl = resolveImageRef(
+          url: profile['avatar_url'] as String?, 
+          name: profile['avatar_name'] as String?
+        );
+        _currentHeaderUrl = resolveImageRef(
+          url: profile['header_url'] as String?, 
+          name: profile['header_name'] as String?
+        );
       });
     } catch (e) {
       setState(() => _error = 'Failed to load profile');
