@@ -36,7 +36,6 @@ class FileService {
         final cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
         final cleanPath = p.substring(p.indexOf('/static/'));
         final fullUrl = '$cleanBaseUrl$cleanPath';
-        print('DEBUG: Rewritten localhost URL: $fullUrl');
         return fullUrl;
       }
       return p;
@@ -46,7 +45,6 @@ class FileService {
     final cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.substring(0, baseUrl.length - 1) : baseUrl;
     final cleanPath = p.startsWith('/') ? p : '/$p';
     final fullUrl = '$cleanBaseUrl$cleanPath';
-    print('DEBUG: Generated image URL: $fullUrl');
     return fullUrl;
   }
 }

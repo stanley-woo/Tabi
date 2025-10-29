@@ -1,53 +1,46 @@
 # backend/app/seed.py
-import asyncio
-from sqlmodel import Session, select
-from app.database import engine
-from app import crud, schemas
-from datetime import date
+# import asyncio
+# from sqlmodel import Session, select
+# from app.database import engine
+# from app import crud, schemas
+# from datetime import date
 
-async def seed_data():
-    """
-    Seeds the database with a single user for testing.
-    """
-    # Starting database seeding
+# async def seed_data():
+#     """
+#     Seeds the database with a single user for testing.
+#     """
+#     # Starting database seeding
 
-    users_to_create = [
-        {
-            "username": "julieee_mun", "email": "stanleywoo450401@gmail.com", "display_name": "Julie Mun",
-            "bio": "Music lover 🎵 | Coastal drives 🌊 | California dreaming",
-            "avatar_name": "Julie.jpg",
-            "header_url": "http://localhost:8000/static/Julie.jpg"
-        }
-    ]
+#     users_to_create = [
+#         {
+#             "username": "julieee_mun", "email": "stanleywoo450401@gmail.com", "display_name": "Julie Mun",
+#             "bio": "Music lover 🎵 | Coastal drives 🌊 | California dreaming",
+#             "avatar_name": "Julie.jpg",
+#             "header_url": "http://localhost:8000/static/Julie.jpg"
+#         }
+#     ]
     
-    with Session(engine) as session:
-        # Creating user
-        for user_data in users_to_create:
-            if not crud.get_user_by_username(session, username=user_data["username"]):
-                db_user = crud.create_user_with_password(
-                    session=session,
-                    username=user_data["username"],
-                    email=user_data["email"],
-                    password="password"
-                )
+#     with Session(engine) as session:
+#         # Creating user
+#         for user_data in users_to_create:
+#             if not crud.get_user_by_username(session, username=user_data["username"]):
+#                 db_user = crud.create_user_with_password(
+#                     session=session,
+#                     username=user_data["username"],
+#                     email=user_data["email"],
+#                     password="password"
+#                 )
                 
-                db_user.display_name = user_data.get("display_name")
-                db_user.bio = user_data.get("bio")
-                db_user.avatar_name = user_data.get("avatar_name")
-                db_user.header_url = user_data.get("header_url")
-                session.add(db_user)
-                session.commit()
-        # User created
-        
-        # --- Itinerary creation is commented out for now ---
-        # print(f"\n🗺️  Creating itineraries...")
-        # ... (code for itinerary creation)
-        # print("✅ Itineraries created.")
-        
-        # Database seeding complete
+#                 db_user.display_name = user_data.get("display_name")
+#                 db_user.bio = user_data.get("bio")
+#                 db_user.avatar_name = user_data.get("avatar_name")
+#                 db_user.header_url = user_data.get("header_url")
+#                 session.add(db_user)
+#                 session.commit()
+#         # User created
 
-if __name__ == "__main__":
-    asyncio.run(seed_data())
+# if __name__ == "__main__":
+#     asyncio.run(seed_data())
 
 
 
