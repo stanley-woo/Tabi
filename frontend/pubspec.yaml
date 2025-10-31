@@ -57,7 +57,7 @@ dev_dependencies:
 flutter_launcher_icons:
   ios: true
   android: true
-  image_path: assets/app_icon.png 
+  image_path: assets/icons/Tabi-light-logo.png 
   adaptive_icon_background: "#FFFFFF" 
   remove_alpha_ios: true                 
 
@@ -67,3 +67,6 @@ flutter:
   assets:
     - assets/tabi_logo.png
     - assets/app_icon.png
+    - assets/splash/Tabi-splash.png
+    - assets/icons/Tabi-dark-logo.png
+    - assets/icons/Tabi-light-logo.png
